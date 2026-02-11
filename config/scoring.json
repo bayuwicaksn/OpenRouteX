@@ -1,0 +1,16 @@
+[
+  { "name": "Code", "weight": 0.9, "regex": "(function|class|import|const|return|=>|\\{|\\}|def |impl |script|code|python|java|cpp|programming|develop|build)" },
+  { "name": "Math", "weight": 0.8, "regex": "(\\d+[\\+\\-\\*\\/]\\d+|equation|calculate|solve|theorem|proof|integral|derivative|math)" },
+  { "name": "Reasoning", "weight": 1.5, "regex": "(analyze|compare|why|explain|step-by-step|reasoning|logic|how to|thinking|thought)" },
+  { "name": "Creative", "weight": 0.8, "regex": "(poem|story|write a|imagine|fiction|narrative|generate|create)" },
+  { "name": "Length", "weight": 0.5, "type": "length", "threshold": 500 },
+  { "name": "Context", "weight": 0.5, "regex": "(previous|above|history|context|earlier)" },
+  { "name": "Data", "weight": 1.0, "regex": "(json|csv|xml|schema|format|extract|table|data|database|sql)" },
+  { "name": "Multilingual", "weight": 1.2, "regex": "[^\\x00-\\x7F]+" },
+  { "name": "Urgency", "weight": 0.2, "regex": "(quick|fast|short|brief)" },
+  { "name": "Roleplay", "weight": 0.6, "regex": "(act as|you are a|persona)" },
+  { "name": "Constraints", "weight": 0.6, "regex": "(do not|without|limit|only|strictly)" },
+  { "name": "Formatting", "weight": 0.4, "regex": "(\\*\\*|##|\\[.*\\]\\(.*\\)|```)" },
+  { "name": "FileOps", "weight": 0.8, "regex": "(read file|write file|save to|load from|directory|path|file system)" },
+  { "name": "Tools", "weight": 1.0, "regex": "(search|browse|execute|run command|terminal|api|fetch|scrape|crawl|http|request)" }
+]

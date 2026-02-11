@@ -1,0 +1,33 @@
+{
+  "SIMPLE": {
+    "id": "qwen-portal/coder-model",
+    "backupId": "deepseek/deepseek-chat",
+    "provider": "qwen-portal",
+    "costInput": 0.00,
+    "costOutput": 0.00,
+    "context": 32768
+  },
+  "MEDIUM": {
+    "id": "google-antigravity/gemini-3-flash",
+    "backupId": "openai/gpt-4o-mini",
+    "provider": "google-antigravity",
+    "costInput": 0.10,
+    "costOutput": 0.10,
+    "context": 1000000
+  },
+  "COMPLEX": {
+    "id": "google-antigravity/claude-opus-4-6-thinking",
+    "provider": "google-antigravity",
+    "costInput": 15.00,
+    "costOutput": 75.00,
+    "context": 200000
+  },
+  "REASONING": {
+    "id": "google-antigravity/claude-opus-4-6-thinking",
+    "backupId": "deepseek/deepseek-reasoner",
+    "provider": "google-antigravity",
+    "costInput": 15.00,
+    "costOutput": 75.00,
+    "context": 200000
+  }
+}
