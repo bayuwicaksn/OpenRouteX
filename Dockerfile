@@ -22,7 +22,7 @@ WORKDIR /app
 
 # Install production dependencies only
 COPY package.json package-lock.json ./
-# Need build tools for better-sqlite3 even for prod install
+# Need build tools for better-sqlite3 even for prod install. CACHE_BUST=1
 RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
 RUN npm ci --omit=dev --ignore-scripts
 # Rebuild native modules after ignoring scripts
