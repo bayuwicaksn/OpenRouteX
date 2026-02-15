@@ -24,7 +24,9 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 # Need build tools for better-sqlite3 even for prod install
 RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev --ignore-scripts
+# Rebuild native modules after ignoring scripts
+RUN npm rebuild better-sqlite3
 
 # Copy built backend
 COPY --from=backend-builder /app/dist ./dist
