@@ -1,52 +1,48 @@
 {
-  "name": "smart-router-bw",
-  "version": "1.0.1",
-  "description": "🚀 Intelligent LLM Router for OpenClaw - Save 35-99% on AI costs with 14-dimension complexity analysis and optimal model selection. Routes coding tasks to Google Antigravity Opus, simple tasks to free models.",
-  "main": "index.js",
-  "scripts": {
-    "test": "node test/test-suite.js",
-    "start": "node proxy-server.js",
-    "dev": "node proxy-server.js"
-  },
-  "dependencies": {
-    "axios": "^1.6.0",
-    "express": "^4.18.0",
-    "google-auth-library": "^9.0.0",
-    "body-parser": "^1.20.0"
-  },
-  "keywords": [
-    "openclaw",
-    "llm-router",
-    "cost-optimization",
-    "ai-routing",
-    "smart-router",
-    "clawrouter",
-    "model-selection",
-    "google-antigravity",
-    "deepseek",
-    "gemini",
-    "qwen",
-    "cost-saving",
-    "ai-efficiency"
-  ],
-  "author": "Bayu Wicaksono <bayu@techyninjas.com>",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/bayuwicaksn/smart-router-bw"
-  },
-  "homepage": "https://github.com/bayuwicaksn/smart-router-bw",
-  "bugs": {
-    "url": "https://github.com/bayuwicaksn/smart-router-bw/issues"
-  },
-  "engines": {
-    "node": ">=18.0.0",
-    "openclaw": ">=2026.2.0"
-  },
-  "clawhub": {
-    "category": "ai-optimization",
-    "tags": ["cost-saving", "routing", "llm", "optimization"],
-    "compatibility": ["openclaw"],
-    "demo": "https://clawhub.com/demo/smart-router"
-  }
+    "name": "openroutex",
+    "version": "0.1.0",
+    "description": "Smart LLM router with 14-dimension scoring, multi-provider auth, and round-robin account rotation",
+    "type": "module",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "bin": {
+        "smart-router": "./dist/cli.js"
+    },
+    "scripts": {
+        "dev": "tsx src/cli.ts",
+        "build": "tsup",
+        "typecheck": "tsc --noEmit",
+        "start": "tsx src/cli.ts start",
+        "test": "tsx test/test-router.ts",
+        "prepare": "pnpm build",
+        "test:model": "node scripts/test-model-cli.js",
+        "test:model:stream": "node scripts/test-model-cli.js --stream",
+        "proxy:start": "node dist/cli.js start --port 3402",
+        "proxy:start:raw": "powershell -NoProfile -Command \"$env:DEBUG_RAW='1'; node dist/cli.js start --port 3402\"",
+        "proxy:start:raw:3403": "powershell -NoProfile -Command \"$env:DEBUG_RAW='1'; node dist/cli.js start --port 3403\"",
+        "proxy:health": "curl -s http://localhost:3402/health",
+        "models:list": "tsx scripts/model-list.ts",
+        "models:list:antigravity": "tsx scripts/model-list.ts --provider antigravity",
+        "models:list:compact": "tsx scripts/model-list.ts --compact",
+        "models:list:json": "tsx scripts/model-list.ts --json"
+    },
+    "dependencies": {
+        "better-sqlite3": "^12.6.2",
+        "cookie-parser": "^1.4.7",
+        "dotenv": "^16.4.7",
+        "jsonwebtoken": "^9.0.3"
+    },
+    "devDependencies": {
+        "@types/better-sqlite3": "^7.6.13",
+        "@types/cookie-parser": "^1.4.10",
+        "@types/jsonwebtoken": "^9.0.10",
+        "@types/node": "^22.19.11",
+        "concurrently": "^9.2.1",
+        "tsup": "^8.3.0",
+        "tsx": "^4.19.0",
+        "typescript": "^5.7.0"
+    },
+    "engines": {
+        "node": ">=20"
+    }
 }

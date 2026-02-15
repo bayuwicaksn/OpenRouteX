@@ -1,0 +1,15 @@
+services:
+  openroutex:
+    build: .
+    container_name: openroutex
+    restart: unless-stopped
+    ports:
+      - "3402:3402"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - NODE_ENV=production
+      - PORT=3402
+      # Add your API keys here or in a .env file
+      # - OPENAI_API_KEY=sk-...
+      # - GEMINI_API_KEY=...
