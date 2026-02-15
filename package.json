@@ -14,7 +14,7 @@
         "typecheck": "tsc --noEmit",
         "start": "tsx src/cli.ts start",
         "test": "tsx test/test-router.ts",
-        "prepare": "pnpm build",
+        "prepare": "npm run build",
         "test:model": "node scripts/test-model-cli.js",
         "test:model:stream": "node scripts/test-model-cli.js --stream",
         "proxy:start": "node dist/cli.js start --port 3402",
