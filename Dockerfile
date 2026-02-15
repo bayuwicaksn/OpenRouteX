@@ -12,7 +12,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 # Install build tools for native modules (better-sqlite3)
 RUN apt-get update && apt-get install -y python3 make g++
-RUN npm ci
+RUN npm ci --ignore-scripts
 COPY . .
 RUN npm run build
 
