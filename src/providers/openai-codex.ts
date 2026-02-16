@@ -344,12 +344,33 @@ export const openaiCodexProvider: Provider = {
         if (result?.code) {
             code = result.code;
         } else {
-            const input = await ctx.prompt("Paste the redirect URL or authorization code:");
+            const input = await ctx.prompt("Paste the redirect URL, authorization code, or Access Token:");
+            const trimmed = input.trim();
+
+            // Check if input is a JWT Access Token (starts with ey...)
+            if (trimmed.startsWith("ey")) {
+                ctx.progress.update("Validating access token...");
+                const accountId = getAccountId(trimmed);
+                if (!accountId) {
+                    throw new Error("Invalid access token: could not extract account ID");
+                }
+
+                // Return credential directly
+                return {
+                    type: "oauth",
+                    provider: "openai-codex",
+                    access: trimmed,
+                    refresh: "", // No refresh token available in this flow
+                    expires: Date.now() + 10 * 24 * 60 * 60 * 1000, // Assume 10 days validity for now
+                    accountId,
+                };
+            }
+
             try {
-                const url = new URL(input.trim());
-                code = url.searchParams.get("code") ?? input.trim();
+                const url = new URL(trimmed);
+                code = url.searchParams.get("code") ?? trimmed;
             } catch {
-                code = input.trim();
+                code = trimmed;
             }
         }
 
