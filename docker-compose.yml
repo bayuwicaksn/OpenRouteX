@@ -1,7 +1,7 @@
 services:
   openroutex:
     # build: .
-    image: ghcr.io/bayuwicaksn/openroutex:main
+    image: ghcr.io/bayuwicaksn/smart-router-bw:main
     container_name: openroutex
     restart: unless-stopped
     ports:
@@ -14,3 +14,10 @@ services:
       # Add your API keys here or in a .env file
       # - OPENAI_API_KEY=sk-...
       # - GEMINI_API_KEY=...
+
+  watchtower:
+    image: containrrr/watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 300
+    restart: unless-stopped
