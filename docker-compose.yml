@@ -1,6 +1,7 @@
 services:
   openroutex:
-    build: .
+    # build: .
+    image: ghcr.io/bayuwicaksn/openroutex:main
     container_name: openroutex
     restart: unless-stopped
     ports:
