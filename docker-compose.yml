@@ -1,7 +1,7 @@
 services:
   openroutex:
     # build: .
-    image: ghcr.io/bayuwicaksn/smart-router-bw:main
+    image: ghcr.io/bayuwicaksn/openroutex:main
     container_name: openroutex
     restart: unless-stopped
     ports:
