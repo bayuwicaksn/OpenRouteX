@@ -2,7 +2,7 @@ import type { Provider } from "../types.js";
 
 // ── OAuth/Device code providers ─────────────────────────────────────
 import { antigravityProvider } from "./antigravity.js";
-import { openaiCodexProvider } from "./openai-codex.js";
+import { openaiCodexProvider, getAccountId, getAccountEmail } from "./openai-codex.js";
 import { githubCopilotProvider } from "./github-copilot.js";
 import { qwenPortalProvider } from "./qwen-portal.js";
 import { minimaxPortalProvider, minimaxPortalCNProvider } from "./minimax-portal.js";
@@ -18,6 +18,7 @@ import {
     xaiProvider,
     groqProvider,
     openrouterProvider,
+    nvidiaProvider,
 } from "./api-key-providers.js";
 
 // ── Registry ────────────────────────────────────────────────────────
@@ -38,6 +39,7 @@ const ALL_PROVIDERS: Provider[] = [
     xaiProvider,
     groqProvider,
     openrouterProvider,
+    nvidiaProvider,
 ];
 
 const providerMap = new Map<string, Provider>();
@@ -74,4 +76,7 @@ export {
     xaiProvider,
     groqProvider,
     openrouterProvider,
+    nvidiaProvider,
+    getAccountId,
+    getAccountEmail,
 };

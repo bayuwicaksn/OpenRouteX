@@ -79,3 +79,48 @@ export const fetchConfig = async (): Promise<ConfigData> => {
 export const deleteProfile = async (id: string): Promise<void> => {
     await api.delete(`/profile?id=${encodeURIComponent(id)}`);
 };
+
+export interface ChatMessage {
+    role: "system" | "user" | "assistant";
+    content: string;
+    reasoning?: string;
+}
+
+export interface ChatCompletionRequest {
+    model: string;
+    messages: ChatMessage[];
+    temperature?: number;
+    stream?: boolean;
+    enable_thinking?: boolean;
+}
+
+export interface ChatCompletionResponse {
+    id: string;
+    model: string;
+    choices: {
+        index: number;
+        message: ChatMessage;
+        finish_reason: string;
+    }[];
+}
+
+export const sendChat = async (req: ChatCompletionRequest): Promise<ChatCompletionResponse> => {
+    // We use the /v1/chat/completions endpoint which mimics OpenAI
+    // We need to use the full URL because our axios instance has baseURL='/api'
+    // But /v1/ is at root. 
+    // Actually, let's use a separate axios call or fetch to hit /v1/chat/completions
+    const res = await fetch("/v1/chat/completions", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(req),
+    });
+
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: { message: res.statusText } }));
+        throw new Error(err.error?.message || "Chat request failed");
+    }
+
+    return res.json();
+};

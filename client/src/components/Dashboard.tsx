@@ -4,24 +4,39 @@ import { StatsGrid } from "./StatsGrid";
 import { RecentActivity } from "./RecentActivity";
 import { Charts } from "./Charts";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Plus, Settings } from "lucide-react";
-import { AddAccountDialog } from "./AddAccountDialog";
-import { ManagementDialog } from "./ManagementDialog";
+import { RefreshCw, Settings } from "lucide-react";
+// import { AddAccountDialog } from "./AddAccountDialog"; // Removed
+// import { ManagementDialog } from "./ManagementDialog"; // Removed
 import { useState } from "react";
 import { ModeToggle } from "./mode-toggle";
 import { useAuth } from "@/hooks/use-auth";
 import { LogOut } from "lucide-react";
 
+import { SettingsView } from "./SettingsView";
+
+import { ChatView } from "./ChatView";
+import { MessageSquare } from "lucide-react";
+
 export function Dashboard() {
-    const [isAddOpen, setIsAddOpen] = useState(false);
-    const [isManageOpen, setIsManageOpen] = useState(false);
+    // const [isAddOpen, setIsAddOpen] = useState(false); // Removed
+    // const [isManageOpen, setIsManageOpen] = useState(false); // Removed
+    const [view, setView] = useState<'dashboard' | 'settings' | 'chat'>('dashboard');
     const { logout } = useAuth();
 
     const { data, refetch, isFetching } = useQuery({
         queryKey: ["stats"],
         queryFn: fetchStats,
         refetchInterval: 5000,
+        enabled: view === 'dashboard', // Pause fetching when in settings or chat
     });
+
+    if (view === 'settings') {
+        return <SettingsView onBack={() => setView('dashboard')} />;
+    }
+
+    if (view === 'chat') {
+        return <ChatView onBack={() => setView('dashboard')} />;
+    }
 
     return (
         <div className="min-h-screen bg-background text-foreground p-6">
@@ -45,14 +60,14 @@ export function Dashboard() {
 
                         <ModeToggle />
 
-                        <Button variant="outline" size="sm" onClick={() => setIsManageOpen(true)}>
-                            <Settings className="w-4 h-4 mr-2" />
-                            Manage
+                        <Button variant="ghost" size="sm" onClick={() => setView('chat')}>
+                            <MessageSquare className="w-4 h-4 mr-2" />
+                            Chat
                         </Button>
 
-                        <Button size="sm" onClick={() => setIsAddOpen(true)}>
-                            <Plus className="w-4 h-4 mr-2" />
-                            Add Account
+                        <Button variant="outline" size="sm" onClick={() => setView('settings')}>
+                            <Settings className="w-4 h-4 mr-2" />
+                            Manage
                         </Button>
 
                         <Button variant="ghost" size="icon" onClick={() => refetch()} disabled={isFetching}>
@@ -72,10 +87,6 @@ export function Dashboard() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Charts */}
                     <Charts providerBreakdown={data?.summary.providerBreakdown || {}} />
-
-                    {/* Activity Log - Spans full width on mobile, right column on desktop? No, layout was different */}
-                    {/* Actually layout in original was Charts (2 cols) and Logs? No. */}
-                    {/* Original: Left Col (Charts + Logs), Right Col (Config) */}
 
                     <div className="lg:col-span-2 space-y-6">
                         <div className="rounded-xl border bg-card text-card-foreground shadow-sm">
@@ -106,10 +117,6 @@ export function Dashboard() {
                     </div>
                 </div>
             </div>
-
-            {/* Dialogs */}
-            <AddAccountDialog open={isAddOpen} onOpenChange={setIsAddOpen} />
-            <ManagementDialog open={isManageOpen} onOpenChange={setIsManageOpen} />
         </div>
     );
 }

@@ -9,7 +9,7 @@ import * as fs from "node:fs"; // Add this for fs.statSync
 import { join } from "node:path";
 import { route } from "./router/index.js";
 import type { RoutingDecision } from "./router/index.js";
-import { getProvider } from "./providers/index.js";
+import { getProvider, getAccountId, getAccountEmail } from "./providers/index.js";
 import {
   getAvailableProviders,
   pickNextProfile,
@@ -1399,7 +1399,20 @@ async function handleAddProfile(
     const data = JSON.parse(body);
     const { provider, label, apiKey } = data;
 
-    if (!provider || !label || !apiKey) {
+    // For API Key providers, label is required. For OAuth (like openai-codex), we can derive it.
+    const isOAuth = provider === "antigravity" || provider === "openai-codex";
+
+    if (!provider || (!label && !isOAuth) || (!apiKey && !isOAuth)) {
+      // Note: for OAuth, 'apiKey' might be the token passed in directly, or empty if doing flow?
+      // Actually in handleAuthLogin (which calls this?), wait.
+      // This function 'handleAddProfile' seems to be for the manual "Save Account" button which sends JSON.
+      // But the user is using "Connect Account" button which calls /auth/login.
+
+      // Let's check handleAuthLogin in src/proxy.ts instead.
+      // Wait, the previous view_file was 1400-1480.
+      // handleAuthLogin is likely focused on the "Connect" flow.
+      // Let's look at handleAuthLogin first before editing this.
+
       res.writeHead(400, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: "Missing required fields" }));
       return;
@@ -1422,6 +1435,26 @@ async function handleAddProfile(
           access: "",
           refresh: apiKey,
           expires: 0, // Force immediate refresh
+        },
+        label
+      );
+    } else if (provider === "openai-codex") {
+      // Validate and treat input as Access Token for OpenAI Codex
+      const accountId = getAccountId(apiKey);
+      if (!accountId) {
+        throw new Error("Invalid OpenAI Codex Access Token: Could not extract account ID");
+      }
+
+      upsertProfile(
+        provider,
+        {
+          type: "oauth",
+          provider,
+          access: apiKey,
+          refresh: "",
+          expires: Date.now() + 10 * 24 * 60 * 60 * 1000, // Assume 10 days
+          accountId,
+          email: getAccountEmail(apiKey) ?? undefined,
         },
         label
       );
@@ -1538,10 +1571,16 @@ async function handleAuthLogin(
     const ctx = createServerLoginContext();
     const cred = await provider.login(ctx, { projectId });
 
-    // Auto-detect email for label if not provided
-    const effectiveLabel = label || ("email" in cred ? cred.email : "default");
+    // Auto-detect email for label if not provided or if default
+    // Priority: cred.email > label (if not default/empty) > "default"
+    let effectiveLabel = label;
+    if ("email" in cred && cred.email) {
+      effectiveLabel = cred.email;
+    } else if (!effectiveLabel || effectiveLabel === "default") {
+      effectiveLabel = "default";
+    }
 
-    upsertProfile(providerId, cred, effectiveLabel as string);
+    upsertProfile(providerId, cred, effectiveLabel);
 
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ success: true, profile: { id: providerId, label: effectiveLabel } }));

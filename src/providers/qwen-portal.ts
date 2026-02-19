@@ -12,6 +12,7 @@ import type {
 const BASE_URL = "https://chat.qwen.ai";
 const DEVICE_CODE_ENDPOINT = `${BASE_URL}/api/v1/oauth2/device/code`;
 const TOKEN_ENDPOINT = `${BASE_URL}/api/v1/oauth2/token`;
+const USER_INFO_ENDPOINT = `${BASE_URL}/api/v1/users/me`; // Guessing endpoint
 const CLIENT_ID = "f0304373b74a44d2b584a3fb70ca9e56";
 const SCOPE = "openid profile email model.completion";
 const GRANT_TYPE = "urn:ietf:params:oauth:grant-type:device_code";
@@ -112,6 +113,31 @@ async function pollForToken(
         }
     }
 
+    let email: string | undefined;
+
+    // 1. Try to decode JWT
+    try {
+        const parts = data.access_token.split(".");
+        if (parts.length === 3) {
+            const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString());
+            if (payload.email) email = payload.email;
+        }
+    } catch { /* ignore */ }
+
+    // 2. If no email, try to fetch user info
+    if (!email) {
+        try {
+            const userRes = await fetch(USER_INFO_ENDPOINT, {
+                headers: { Authorization: `Bearer ${data.access_token}` }
+            });
+            if (userRes.ok) {
+                const userData = await userRes.json() as { email?: string; data?: { email?: string } };
+                if (userData.email) email = userData.email;
+                else if (userData.data?.email) email = userData.data.email; // Common wrapper
+            }
+        } catch { /* ignore */ }
+    }
+
     return {
         type: "oauth",
         provider: "qwen-portal",
@@ -119,6 +145,7 @@ async function pollForToken(
         refresh: data.refresh_token,
         expires: Date.now() + data.expires_in * 1000,
         resourceUrl: resUrl,
+        email,
     };
 }
 

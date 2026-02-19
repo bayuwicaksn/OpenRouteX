@@ -1,19 +1,16 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // Need to install select!
-// Wait, I missed installing 'select' component.
 import { Loader2 } from "lucide-react";
 import { api } from "@/lib/api";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
-interface AddAccountDialogProps {
-    open: boolean;
-    onOpenChange: (open: boolean) => void;
+interface AddAccountFormProps {
+    onSuccess?: () => void;
 }
 
-export function AddAccountDialog({ open, onOpenChange }: AddAccountDialogProps) {
+export function AddAccountForm({ onSuccess }: AddAccountFormProps) {
     const [provider, setProvider] = useState("google");
     const [label, setLabel] = useState("");
     const [apiKey, setApiKey] = useState("");
@@ -31,8 +28,10 @@ export function AddAccountDialog({ open, onOpenChange }: AddAccountDialogProps) 
                 label,
                 apiKey,
             });
-            onOpenChange(false);
-            // Trigger refresh? Invalidate query in parent
+            // Reset form
+            setLabel("");
+            setApiKey("");
+            onSuccess?.();
         } catch (err: any) {
             setError(err.response?.data?.error || err.message);
         } finally {
@@ -51,7 +50,7 @@ export function AddAccountDialog({ open, onOpenChange }: AddAccountDialogProps) 
             // Check if successful
             if (res.data.success) {
                 alert(`Authenticated as ${res.data.profile.label}`);
-                onOpenChange(false);
+                onSuccess?.();
             }
         } catch (err: any) {
             setError(err.response?.data?.error || err.message);
@@ -61,11 +60,12 @@ export function AddAccountDialog({ open, onOpenChange }: AddAccountDialogProps) 
     }
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Add Account</DialogTitle>
-                </DialogHeader>
+        <Card>
+            <CardHeader>
+                <CardTitle>Add New Account</CardTitle>
+                <CardDescription>Connect a new AI provider account.</CardDescription>
+            </CardHeader>
+            <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="space-y-2">
                         <Label>Provider</Label>
@@ -85,18 +85,21 @@ export function AddAccountDialog({ open, onOpenChange }: AddAccountDialogProps) 
                             <option value="mistral">Mistral</option>
                             <option value="groq">Groq</option>
                             <option value="openrouter">OpenRouter</option>
+                            <option value="nvidia">Nvidia NIM</option>
                         </select>
                     </div>
 
-                    <div className="space-y-2">
-                        <Label>Label / Email</Label>
-                        <Input
-                            placeholder="user@example.com"
-                            value={label}
-                            onChange={(e) => setLabel(e.target.value)}
-                            required
-                        />
-                    </div>
+                    {!(provider === "antigravity" || provider === "openai-codex" || provider === "qwen-portal") && (
+                        <div className="space-y-2">
+                            <Label>Label / Email</Label>
+                            <Input
+                                placeholder="user@example.com"
+                                value={label}
+                                onChange={(e) => setLabel(e.target.value)}
+                                required
+                            />
+                        </div>
+                    )}
 
                     {(provider === "antigravity" || provider === "openai-codex" || provider === "qwen-portal") ? (
                         <div className="space-y-2">
@@ -121,16 +124,15 @@ export function AddAccountDialog({ open, onOpenChange }: AddAccountDialogProps) 
                     )}
 
                     {error && <div className="text-sm text-red-500">{error}</div>}
-
-                    <DialogFooter>
-                        {!(provider === "antigravity" || provider === "openai-codex" || provider === "qwen-portal") && (
-                            <Button type="submit" disabled={isLoading}>
-                                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Save Account"}
-                            </Button>
-                        )}
-                    </DialogFooter>
                 </form>
-            </DialogContent>
-        </Dialog>
+            </CardContent>
+            <CardFooter>
+                {!(provider === "antigravity" || provider === "openai-codex" || provider === "qwen-portal") && (
+                    <Button type="submit" onClick={handleSubmit} disabled={isLoading} className="w-full">
+                        {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Save Account"}
+                    </Button>
+                )}
+            </CardFooter>
+        </Card>
     );
 }

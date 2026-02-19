@@ -76,3 +76,34 @@ export const openrouterProvider: Provider = createApiKeyProvider({
     envVar: "OPENROUTER_API_KEY",
     extraHeaders: { "HTTP-Referer": "https://github.com/smart-router" },
 });
+
+// 9. Nvidia NIM
+export const nvidiaProvider: Provider = createApiKeyProvider({
+    id: "nvidia",
+    name: "Nvidia NIM",
+    baseUrl: "https://integrate.api.nvidia.com/v1",
+    envVar: "NVIDIA_API_KEY",
+    transformRequest: (body) => {
+        let model = body.model;
+        const enableThinking = body.enable_thinking !== false; // Default true
+        let chat_template_kwargs: any = { enable_thinking: enableThinking, clear_thinking: false };
+
+        if (model === "glm-5") model = "z-ai/glm5";
+        if (model === "qwen-3.5-397b") model = "qwen/qwen3.5-397b-a17b";
+        if (model === "kimi-k2.5") {
+            model = "moonshotai/kimi-k2.5";
+            chat_template_kwargs = { thinking: enableThinking };
+        }
+        if (model === "deepseek-v3.2") model = "deepseek-ai/deepseek-v3.2";
+        if (model === "minimax-m2.1") model = "minimaxai/minimax-m2.1";
+
+        // Remove custom param before sending to upstream (optional but cleaner)
+        const { enable_thinking, ...rest } = body;
+
+        return {
+            ...rest,
+            model,
+            chat_template_kwargs,
+        };
+    },
+});

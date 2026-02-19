@@ -18,6 +18,7 @@ const TOKEN_URL = "https://auth.openai.com/oauth/token";
 const REDIRECT_URI = "http://localhost:1455/auth/callback";
 const SCOPE = "openid profile email offline_access";
 const JWT_CLAIM_PATH = "https://api.openai.com/auth";
+const JWT_PROFILE_PATH = "https://api.openai.com/profile";
 
 // Codex uses chatgpt.com backend, NOT api.openai.com
 const CODEX_BASE_URL = "https://chatgpt.com/backend-api";
@@ -45,11 +46,25 @@ function decodeJwt(token: string): Record<string, unknown> | null {
     } catch { return null; }
 }
 
-function getAccountId(accessToken: string): string | null {
+export function getAccountId(accessToken: string): string | null {
     const payload = decodeJwt(accessToken);
     const auth = payload?.[JWT_CLAIM_PATH] as { chatgpt_account_id?: string } | undefined;
     const id = auth?.chatgpt_account_id;
     return typeof id === "string" && id.length > 0 ? id : null;
+}
+
+export function getAccountEmail(accessToken: string): string | null {
+    const payload = decodeJwt(accessToken);
+
+    // Check OpenAI specific profile claim
+    const profile = payload?.[JWT_PROFILE_PATH] as { email?: string } | undefined;
+    if (profile?.email) return profile.email;
+
+    const auth = payload?.[JWT_CLAIM_PATH] as { email?: string } | undefined;
+    if (auth?.email) return auth.email;
+
+    if (typeof payload?.email === "string") return payload.email;
+    return null;
 }
 
 // ── Local callback server ───────────────────────────────────────────
@@ -143,6 +158,7 @@ async function exchangeCode(code: string, verifier: string): Promise<OAuthCreden
         refresh: data.refresh_token,
         expires: Date.now() + data.expires_in * 1000,
         accountId,
+        email: getAccountEmail(data.access_token) ?? undefined,
     };
 }
 
@@ -363,6 +379,7 @@ export const openaiCodexProvider: Provider = {
                     refresh: "", // No refresh token available in this flow
                     expires: Date.now() + 10 * 24 * 60 * 60 * 1000, // Assume 10 days validity for now
                     accountId,
+                    email: getAccountEmail(trimmed) ?? undefined,
                 };
             }
 

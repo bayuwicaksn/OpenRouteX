@@ -268,15 +268,6 @@ const GITHUB_COPILOT_MODELS: ModelInfo[] = [
 
 const QWEN_PORTAL_MODELS: ModelInfo[] = [
   {
-    id: "qwen-max",
-    name: "Qwen Max",
-    provider: "qwen-portal",
-    publicId: "qwen/qwen-max",
-    contextWindow: 32_000,
-    capabilities: ["code", "reasoning"],
-    free: true,
-  },
-  {
     id: "coder-model",
     name: "Qwen Coder",
     provider: "qwen-portal",
@@ -499,6 +490,54 @@ const OPENROUTER_MODELS: ModelInfo[] = [
   },
 ];
 
+const NVIDIA_MODELS: ModelInfo[] = [
+  {
+    id: "glm-5",
+    name: "GLM-5",
+    provider: "nvidia",
+    publicId: "z-ai/glm5",
+    contextWindow: 128_000,
+    capabilities: ["code", "reasoning"],
+    free: false,
+  },
+  {
+    id: "qwen-3.5-397b",
+    name: "Qwen 3.5 397B",
+    provider: "nvidia",
+    publicId: "qwen/qwen3.5-397b-a17b",
+    contextWindow: 128_000,
+    capabilities: ["code", "reasoning"],
+    free: false,
+  },
+  {
+    id: "kimi-k2.5",
+    name: "Kimi K2.5",
+    provider: "nvidia",
+    publicId: "moonshotai/kimi-k2.5",
+    contextWindow: 128_000,
+    capabilities: ["code", "reasoning"],
+    free: false,
+  },
+  {
+    id: "deepseek-v3.2",
+    name: "DeepSeek V3.2",
+    provider: "nvidia",
+    publicId: "deepseek-ai/deepseek-v3.2",
+    contextWindow: 128_000,
+    capabilities: ["code", "reasoning"],
+    free: false,
+  },
+  {
+    id: "minimax-m2.1",
+    name: "Minimax M2.1",
+    provider: "nvidia",
+    publicId: "minimaxai/minimax-m2.1",
+    contextWindow: 128_000,
+    capabilities: ["code", "reasoning"],
+    free: false,
+  },
+];
+
 // ── Registry ────────────────────────────────────────────────────────
 
 const ALL_MODELS: ModelInfo[] = [
@@ -515,6 +554,7 @@ const ALL_MODELS: ModelInfo[] = [
   ...XAI_MODELS,
   ...QWEN_DASHSCOPE_MODELS,
   ...OPENROUTER_MODELS,
+  ...NVIDIA_MODELS,
 ];
 
 export function getModelsForProvider(providerId: string): ModelInfo[] {
