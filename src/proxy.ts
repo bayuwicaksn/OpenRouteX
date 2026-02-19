@@ -1518,9 +1518,14 @@ async function handleApiKeys(
 
 // ── Server Login Context ────────────────────────────────────────────
 
-function createServerLoginContext(): LoginContext {
+function createServerLoginContext(res?: ServerResponse): LoginContext {
   return {
     async openUrl(url: string) {
+      if (res) {
+        res.write(`data: ${JSON.stringify({ action: "open_url", url })}\n\n`);
+        return;
+      }
+
       const cmd =
         process.platform === "win32"
           ? `start "" "${url}"`
@@ -1529,17 +1534,27 @@ function createServerLoginContext(): LoginContext {
             : `xdg-open "${url}"`;
       exec(cmd);
     },
-    log: (msg: string) => logger.info(msg),
+    log: (msg: string) => {
+      logger.info(msg);
+      if (res) res.write(`data: ${JSON.stringify({ action: "log", message: msg })}\n\n`);
+    },
     async note(message: string, title?: string) {
       if (title) logger.info(`[${title}] ${message}`);
       else logger.info(message);
+      if (res) res.write(`data: ${JSON.stringify({ action: "log", message: message })}\n\n`);
     },
     async prompt(_message: string): Promise<string> {
       throw new Error("Prompt not supported in server mode");
     },
     progress: {
-      update: (msg: string) => logger.info(`Progress: ${msg}`),
-      stop: (msg?: string) => logger.info(`Done: ${msg}`),
+      update: (msg: string) => {
+        logger.info(`Progress: ${msg}`);
+        if (res) res.write(`data: ${JSON.stringify({ action: "progress", message: msg })}\n\n`);
+      },
+      stop: (msg?: string) => {
+        logger.info(`Done: ${msg}`);
+        if (res && msg) res.write(`data: ${JSON.stringify({ action: "progress", message: msg })}\n\n`);
+      },
     },
     isRemote: false,
   };
@@ -1567,27 +1582,42 @@ async function handleAuthLogin(
       return;
     }
 
-    // Trigger OAuth flow
-    const ctx = createServerLoginContext();
-    const cred = await provider.login(ctx, { projectId });
+    // Set headers for streaming response
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      "Connection": "keep-alive"
+    });
 
-    // Auto-detect email for label if not provided or if default
-    // Priority: cred.email > label (if not default/empty) > "default"
-    let effectiveLabel = label;
-    if ("email" in cred && cred.email) {
-      effectiveLabel = cred.email;
-    } else if (!effectiveLabel || effectiveLabel === "default") {
-      effectiveLabel = "default";
+    const ctx = createServerLoginContext(res);
+
+    try {
+      const cred = await provider.login(ctx, { projectId });
+
+      // Auto-detect email for label if not provided or if default
+      let effectiveLabel = label;
+      if ("email" in cred && cred.email) {
+        effectiveLabel = cred.email;
+      } else if (!effectiveLabel || effectiveLabel === "default") {
+        effectiveLabel = "default";
+      }
+
+      upsertProfile(providerId, cred, effectiveLabel);
+
+      res.write(`data: ${JSON.stringify({ success: true, profile: { id: providerId, label: effectiveLabel } })}\n\n`);
+    } catch (loginErr: any) {
+      res.write(`data: ${JSON.stringify({ error: loginErr.message })}\n\n`);
     }
 
-    upsertProfile(providerId, cred, effectiveLabel);
-
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ success: true, profile: { id: providerId, label: effectiveLabel } }));
+    res.end();
   } catch (err: any) {
     logger.error("Auth login failed:", err);
-    res.writeHead(500, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ error: err.message }));
+    if (!res.headersSent) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    } else {
+      res.end();
+    }
   }
 }
 

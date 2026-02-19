@@ -43,17 +43,59 @@ export function AddAccountForm({ onSuccess }: AddAccountFormProps) {
         setIsLoading(true);
         setError(null);
         try {
-            const res = await api.post("/auth/login", {
-                provider: provider,
-                label: label || 'default'
+            const response = await fetch("/api/auth/login", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    provider: provider,
+                    label: label || 'default'
+                }),
             });
-            // Check if successful
-            if (res.data.success) {
-                alert(`Authenticated as ${res.data.profile.label}`);
-                onSuccess?.();
+
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.error || response.statusText);
             }
+
+            const reader = response.body?.getReader();
+            if (!reader) throw new Error("No response body");
+
+            const decoder = new TextDecoder();
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const chunk = decoder.decode(value, { stream: true });
+                const lines = chunk.split("\n").filter(line => line.trim() !== "");
+
+                for (const line of lines) {
+                    if (line.startsWith("data: ")) {
+                        try {
+                            const data = JSON.parse(line.slice(6));
+
+                            if (data.action === "open_url") {
+                                window.open(data.url, "_blank");
+                            } else if (data.success) {
+                                alert(`Authenticated as ${data.profile?.label}`);
+                                onSuccess?.();
+                                return;
+                            } else if (data.error) {
+                                throw new Error(data.error);
+                            } else if (data.action === "log" || data.action === "progress") {
+                                console.log(`[Auth] ${data.message}`);
+                            }
+                        } catch (e: any) {
+                            if (e.message) setError(e.message);
+                            else console.error("Error parsing auth stream", e);
+                        }
+                    }
+                }
+            }
+
         } catch (err: any) {
-            setError(err.response?.data?.error || err.message);
+            setError(err.message || "Authentication failed");
         } finally {
             setIsLoading(false);
         }
