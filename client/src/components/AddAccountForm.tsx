@@ -49,7 +49,26 @@ export function AddAccountForm({ onSuccess }: AddAccountFormProps) {
         // We keep a reference to it and update the URL later.
         const authWindow = window.open('', '_blank', 'width=600,height=700');
         if (authWindow) {
-            authWindow.document.write('<html><body style="font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #f9f9f9;"><h3>Preparing authentication...</h3></body></html>');
+            authWindow.document.write(`
+                <html>
+                    <body style="font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #f9f9f9; text-align: center;">
+                        <div id="msg">
+                            <h3>Preparing authentication...</h3>
+                            <p>Connecting to server...</p>
+                        </div>
+                        <script>
+                            setTimeout(() => {
+                                const msg = document.getElementById('msg');
+                                if (msg) msg.innerHTML = '<h3>Still waiting...</h3><p>Server is taking longer than expected.</p>';
+                            }, 5000);
+                            setTimeout(() => {
+                                const msg = document.getElementById('msg');
+                                if (msg) msg.innerHTML = '<h3 style="color:red">Error</h3><p>Timeout waiting for server URL.</p>';
+                            }, 15000);
+                        </script>
+                    </body>
+                </html>
+            `);
         }
 
         try {
@@ -73,47 +92,57 @@ export function AddAccountForm({ onSuccess }: AddAccountFormProps) {
             if (!reader) throw new Error("No response body");
 
             const decoder = new TextDecoder();
+            let buffer = "";
+
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
 
                 const chunk = decoder.decode(value, { stream: true });
-                const lines = chunk.split("\n").filter(line => line.trim() !== "");
+                buffer += chunk;
+                const lines = buffer.split("\n");
+
+                // Keep the last part in the buffer as it might be incomplete
+                buffer = lines.pop() || "";
 
                 for (const line of lines) {
-                    if (line.startsWith("data: ")) {
-                        try {
-                            const data = JSON.parse(line.slice(6));
+                    const trimmedLine = line.trim();
+                    if (!trimmedLine || !trimmedLine.startsWith("data: ")) continue;
 
-                            if (data.action === "open_url") {
-                                console.log("[Auth] Opening URL:", data.url);
-                                setAuthUrl(data.url);
+                    try {
+                        const data = JSON.parse(trimmedLine.slice(6));
 
-                                // [Popup Fix] Update the existing window
-                                if (authWindow && !authWindow.closed) {
-                                    authWindow.location.href = data.url;
-                                } else {
-                                    // Fallback if user somehow closed it or it failed
-                                    window.open(data.url, "_blank");
-                                }
+                        if (data.action === "open_url") {
+                            console.log("[Auth] Opening URL:", data.url);
+                            setAuthUrl(data.url);
 
-                            } else if (data.success) {
-                                alert(`Authenticated as ${data.profile?.label}`);
-                                if (authWindow && !authWindow.closed) authWindow.close(); // Close on success
-                                onSuccess?.();
-                                return;
-                            } else if (data.error) {
-                                throw new Error(data.error);
-                            } else if (data.action === "log" || data.action === "progress") {
-                                console.log(`[Auth] ${data.message}`);
-                                if (authWindow && !authWindow.closed && data.action === "progress") {
-                                    // Optional: Could update the loading message in the window, but specific URL is better
-                                }
+                            // [Popup Fix] Update the existing window
+                            if (authWindow && !authWindow.closed) {
+                                authWindow.location.href = data.url;
+                            } else {
+                                // Fallback if user somehow closed it or it failed
+                                window.open(data.url, "_blank");
                             }
-                        } catch (e: any) {
-                            if (e.message) setError(e.message);
-                            else console.error("Error parsing auth stream", e);
+
+                        } else if (data.success) {
+                            alert(`Authenticated as ${data.profile?.label}`);
+                            if (authWindow && !authWindow.closed) authWindow.close(); // Close on success
+                            onSuccess?.();
+                            return;
+                        } else if (data.error) {
+                            throw new Error(data.error);
+                        } else if (data.action === "log" || data.action === "progress") {
+                            console.log(`[Auth] ${data.message}`);
+                            if (authWindow && !authWindow.closed && data.action === "progress") {
+                                // Update status in popup if possible (cross-origin might block if already navigated, but fine before)
+                                try {
+                                    authWindow.document.body.innerHTML = `<h3>Authentication in progress...</h3><p>${data.message}</p>`;
+                                } catch (e) { /* ignore cross-origin errors */ }
+                            }
                         }
+                    } catch (e: any) {
+                        if (e.message) setError(e.message);
+                        else console.error("Error parsing auth stream", e);
                     }
                 }
             }
