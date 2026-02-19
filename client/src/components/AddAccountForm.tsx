@@ -44,6 +44,14 @@ export function AddAccountForm({ onSuccess }: AddAccountFormProps) {
         setIsLoading(true);
         setError(null);
         setAuthUrl(null);
+
+        // [Popup Fix] Open window immediately (Trusted Event) to bypass blocker
+        // We keep a reference to it and update the URL later.
+        const authWindow = window.open('', '_blank', 'width=600,height=700');
+        if (authWindow) {
+            authWindow.document.write('<html><body style="font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #f9f9f9;"><h3>Preparing authentication...</h3></body></html>');
+        }
+
         try {
             const response = await fetch("/api/auth/login", {
                 method: "POST",
@@ -80,15 +88,27 @@ export function AddAccountForm({ onSuccess }: AddAccountFormProps) {
                             if (data.action === "open_url") {
                                 console.log("[Auth] Opening URL:", data.url);
                                 setAuthUrl(data.url);
-                                window.open(data.url, "_blank");
+
+                                // [Popup Fix] Update the existing window
+                                if (authWindow && !authWindow.closed) {
+                                    authWindow.location.href = data.url;
+                                } else {
+                                    // Fallback if user somehow closed it or it failed
+                                    window.open(data.url, "_blank");
+                                }
+
                             } else if (data.success) {
                                 alert(`Authenticated as ${data.profile?.label}`);
+                                if (authWindow && !authWindow.closed) authWindow.close(); // Close on success
                                 onSuccess?.();
                                 return;
                             } else if (data.error) {
                                 throw new Error(data.error);
                             } else if (data.action === "log" || data.action === "progress") {
                                 console.log(`[Auth] ${data.message}`);
+                                if (authWindow && !authWindow.closed && data.action === "progress") {
+                                    // Optional: Could update the loading message in the window, but specific URL is better
+                                }
                             }
                         } catch (e: any) {
                             if (e.message) setError(e.message);
@@ -100,6 +120,7 @@ export function AddAccountForm({ onSuccess }: AddAccountFormProps) {
 
         } catch (err: any) {
             setError(err.message || "Authentication failed");
+            if (authWindow && !authWindow.closed) authWindow.close(); // Close on error
         } finally {
             setIsLoading(false);
         }
