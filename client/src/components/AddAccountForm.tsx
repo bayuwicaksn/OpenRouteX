@@ -16,6 +16,7 @@ export function AddAccountForm({ onSuccess }: AddAccountFormProps) {
     const [apiKey, setApiKey] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [authUrl, setAuthUrl] = useState<string | null>(null);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -42,6 +43,7 @@ export function AddAccountForm({ onSuccess }: AddAccountFormProps) {
     const handleOAuthLogin = async () => {
         setIsLoading(true);
         setError(null);
+        setAuthUrl(null);
         try {
             const response = await fetch("/api/auth/login", {
                 method: "POST",
@@ -76,6 +78,8 @@ export function AddAccountForm({ onSuccess }: AddAccountFormProps) {
                             const data = JSON.parse(line.slice(6));
 
                             if (data.action === "open_url") {
+                                console.log("[Auth] Opening URL:", data.url);
+                                setAuthUrl(data.url);
                                 window.open(data.url, "_blank");
                             } else if (data.success) {
                                 alert(`Authenticated as ${data.profile?.label}`);
@@ -165,6 +169,19 @@ export function AddAccountForm({ onSuccess }: AddAccountFormProps) {
                         </div>
                     )}
 
+                    {authUrl && (
+                        <div className="p-3 mb-2 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-md text-sm">
+                            <p className="font-medium mb-1 text-blue-700 dark:text-blue-300">Popup blocked? Click to login:</p>
+                            <a
+                                href={authUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="break-all text-blue-600 dark:text-blue-400 underline hover:text-blue-800 dark:hover:text-blue-200"
+                            >
+                                {authUrl}
+                            </a>
+                        </div>
+                    )}
                     {error && <div className="text-sm text-red-500">{error}</div>}
                 </form>
             </CardContent>
