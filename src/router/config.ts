@@ -110,6 +110,8 @@ const DEFAULT_TIER_MODELS: Record<Tier, ModelRoute[]> = {
     ],
     MEDIUM: [
         { model: "gemini-3-pro", provider: "antigravity" },
+        { model: "minimax-m2.1", provider: "nvidia" }, // Added
+        { model: "kimi-k2.5", provider: "nvidia" },     // Added
         { model: "coder-model", provider: "qwen-portal" },
         { model: "MiniMax-M2.5", provider: "minimax-portal" },
         { model: "gemini-2.5-flash", provider: "google" },
@@ -117,6 +119,8 @@ const DEFAULT_TIER_MODELS: Record<Tier, ModelRoute[]> = {
         { model: "claude-sonnet-4-5-20250514", provider: "anthropic" },
     ],
     COMPLEX: [
+        { model: "deepseek-v3.2", provider: "nvidia" }, // Added
+        { model: "qwen-3.5-397b", provider: "nvidia" }, // Added
         { model: "gemini-3-pro", provider: "antigravity" },
         { model: "claude-opus-4-6", provider: "antigravity" },
         { model: "gpt-5.2-codex", provider: "openai-codex" },
@@ -124,6 +128,8 @@ const DEFAULT_TIER_MODELS: Record<Tier, ModelRoute[]> = {
         { model: "claude-opus-4-20250512", provider: "anthropic" },
     ],
     REASONING: [
+        { model: "glm-5", provider: "nvidia" },         // Added
+        { model: "qwen-3.5-397b", provider: "nvidia" }, // Added
         { model: "gemini-3-pro", provider: "antigravity" },
         { model: "gpt-5.3-codex", provider: "openai-codex" },
         { model: "claude-opus-4-6", provider: "antigravity" },
@@ -135,7 +141,7 @@ const DEFAULT_TIER_MODELS: Record<Tier, ModelRoute[]> = {
 // ── Default fallback order ──────────────────────────────────────────
 
 const DEFAULT_FALLBACK_ORDER = [
-    "antigravity", "qwen-portal", "minimax-portal",
+    "antigravity", "nvidia", "qwen-portal", "minimax-portal",
     "google", "deepseek", "groq",
     "openai-codex", "github-copilot", "copilot-proxy",
     "openai", "anthropic", "xai", "openrouter",

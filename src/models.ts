@@ -538,9 +538,21 @@ const NVIDIA_MODELS: ModelInfo[] = [
   },
 ];
 
+const ROUTER_MODELS: ModelInfo[] = [
+  {
+    id: "auto",
+    name: "Auto (Smart Router)",
+    provider: "router",
+    contextWindow: 128_000,
+    capabilities: ["code", "reasoning", "chat"],
+    free: true,
+  },
+];
+
 // ── Registry ────────────────────────────────────────────────────────
 
 const ALL_MODELS: ModelInfo[] = [
+  ...ROUTER_MODELS,
   ...ANTIGRAVITY_MODELS,
   ...OPENAI_CODEX_MODELS,
   ...GITHUB_COPILOT_MODELS,

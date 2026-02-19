@@ -34,7 +34,7 @@ export function ChatView({ onBack }: ChatViewProps) {
         }
     }, [models, selectedModel, config]); // config dependency added for availableProviders recreation check (though inefficient, it works)
 
-    const availableModels = models.filter(m => availableProviders.has(m.provider));
+    const availableModels = models.filter(m => availableProviders.has(m.provider) || m.provider === "router");
     const unavailableModels = models.filter(m => !availableProviders.has(m.provider));
 
     useEffect(() => {
@@ -98,8 +98,23 @@ export function ChatView({ onBack }: ChatViewProps) {
                                 const newMessages = [...prev];
                                 const lastMsg = newMessages[newMessages.length - 1];
                                 if (lastMsg.role === "assistant") {
-                                    lastMsg.content = accumulatedContent;
-                                    lastMsg.reasoning = accumulatedReasoning;
+                                    // Parse <think> tags from content if reasoning_content wasn't provided directly
+                                    let displayContent = accumulatedContent;
+                                    let extraReasoning = "";
+
+                                    const thinkMatch = accumulatedContent.match(/<think>(.*?)<\/think>/s);
+                                    if (thinkMatch) {
+                                        extraReasoning = thinkMatch[1];
+                                        displayContent = accumulatedContent.replace(/<think>.*?<\/think>/s, "").trim();
+                                    } else if (accumulatedContent.includes("<think>")) {
+                                        // Still streaming the think block
+                                        const startIndex = accumulatedContent.indexOf("<think>");
+                                        extraReasoning = accumulatedContent.slice(startIndex + 7);
+                                        displayContent = accumulatedContent.slice(0, startIndex).trim();
+                                    }
+
+                                    lastMsg.content = displayContent;
+                                    lastMsg.reasoning = accumulatedReasoning || extraReasoning;
                                 }
                                 return newMessages;
                             });
