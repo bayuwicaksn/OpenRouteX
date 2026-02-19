@@ -136,7 +136,11 @@ async function exchangeCode(code: string, verifier: string): Promise<OAuthCreden
         }),
     });
 
-    if (!res.ok) throw new Error(`Token exchange failed: ${await res.text()}`);
+    if (!res.ok) {
+        const txt = await res.text();
+        console.error(`[Codex] Token exchange error: ${res.status} ${txt}`);
+        throw new Error(`Token exchange failed: ${txt}`);
+    }
 
     const data = (await res.json()) as {
         access_token: string;

@@ -16,7 +16,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_STORE_PATH = join(__dirname, "..", "data", "auth-store.json");
 
 function getStorePath(): string {
-    return process.env.SMART_ROUTER_AUTH_STORE ?? DEFAULT_STORE_PATH;
+    const p = process.env.SMART_ROUTER_AUTH_STORE ?? DEFAULT_STORE_PATH;
+    // logger.info(`[AuthStore] Using path: ${p}`); // Too noisy for every call? Maybe once?
+    return p;
 }
 
 // ── Load / Save ─────────────────────────────────────────────────────
@@ -27,7 +29,10 @@ function emptyStore(): AuthProfileStore {
 
 export function loadStore(): AuthProfileStore {
     const path = getStorePath();
-    if (!existsSync(path)) return emptyStore();
+    if (!existsSync(path)) {
+        logger.info(`[AuthStore] No store found at ${path}, creating new.`);
+        return emptyStore();
+    }
     try {
         const raw = readFileSync(path, "utf8");
         const data = JSON.parse(raw) as AuthProfileStore;
@@ -37,7 +42,7 @@ export function loadStore(): AuthProfileStore {
             usageStats: data.usageStats ?? {},
         };
     } catch (err) {
-        logger.warn("Failed to load auth store, starting fresh:", err);
+        logger.error(`[AuthStore] Failed to load auth store from ${path}:`, err);
         return emptyStore();
     }
 }
@@ -45,10 +50,16 @@ export function loadStore(): AuthProfileStore {
 export function saveStore(store: AuthProfileStore): void {
     const path = getStorePath();
     const dir = dirname(path);
-    if (!existsSync(dir)) {
-        mkdirSync(dir, { recursive: true });
+    try {
+        if (!existsSync(dir)) {
+            mkdirSync(dir, { recursive: true });
+        }
+        writeFileSync(path, JSON.stringify(store, null, 2) + "\n", "utf8");
+        // logger.info(`[AuthStore] Saved to ${path}`);
+    } catch (err) {
+        logger.error(`[AuthStore] Failed to save auth store to ${path}:`, err);
+        throw err; // Re-throw to alert caller
     }
-    writeFileSync(path, JSON.stringify(store, null, 2) + "\n", "utf8");
 }
 
 // ── Profile CRUD ────────────────────────────────────────────────────

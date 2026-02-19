@@ -1603,6 +1603,7 @@ async function handleAuthLogin(
         effectiveLabel = "default";
       }
 
+      logger.info(`[Auth] Saving profile for ${providerId} (${effectiveLabel})`);
       upsertProfile(providerId, cred, effectiveLabel);
 
       res.write(`data: ${JSON.stringify({ success: true, profile: { id: providerId, label: effectiveLabel } })}\n\n`);
