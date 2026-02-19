@@ -1,4 +1,4 @@
-import type { Provider, ChatCompletionRequest, ProfileCredential, LoginContext } from "../types.js";
+import type { Provider, ChatCompletionRequest, ProfileCredential, LoginContext } from "../shared/types.js";
 
 // ── Copilot Proxy (local VS Code Copilot models) ────────────────────
 

@@ -6,10 +6,10 @@
  */
 
 export { route, classifyByRules, selectModel, getDefaultConfig } from "./router/index.js";
-export { startProxy } from "./proxy.js";
+export { startProxy } from "./server/index.js";
 export { getProvider, getAllProviders } from "./providers/index.js";
-export { getModelsForProvider, getAllModels, findModel } from "./models.js";
-export type { ModelInfo } from "./models.js";
+export { getModelsForProvider, getAllModels, findModel } from "./models/registry.js";
+export type { ModelInfo } from "./models/registry.js";
 export {
     loadStore,
     saveStore,
@@ -23,9 +23,9 @@ export {
     markProfileFailure,
     clearProfileCooldown,
     buildProfileId,
-} from "./auth-store.js";
-export { getStats, getStatsSummary, recordRequest } from "./stats.js";
-export { logger, setLogLevel } from "./logger.js";
+} from "./auth/store.js";
+export { getStats, getStatsSummary, recordRequest } from "./storage/stats.js";
+export { logger, setLogLevel } from "./shared/logger.js";
 export type {
     Provider,
     ProfileCredential,
@@ -37,7 +37,7 @@ export type {
     RequestStats,
     LoginContext,
     AuthProfileStore,
-} from "./types.js";
+} from "./shared/types.js";
 export type {
     Tier,
     ScoringResult,

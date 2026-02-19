@@ -1,4 +1,4 @@
-import { db } from "./db.js";
+import { db } from "../storage/db.js";
 import { randomBytes, createHash } from "node:crypto";
 
 export interface ApiKey {
@@ -21,12 +21,11 @@ export interface NewKey {
 export function generateKey(label: string): NewKey {
     const rawInfo = randomBytes(32).toString("hex");
     const key = `sk-sr-${rawInfo}`;
-    const prefix = key.slice(0, 10) + "..."; // sk-sr-1234...
+    const prefix = key.slice(0, 10) + "...";
 
     const hash = createHash("sha256").update(key).digest("hex");
     const now = Date.now();
 
-    // Insert into DB
     const stmt = db.prepare(`
     INSERT INTO api_keys (key_hash, prefix, label, created_at, is_active)
     VALUES (?, ?, ?, ?, 1)
@@ -44,8 +43,6 @@ export function validateKey(key: string): ApiKey | null {
     const record = stmt.get(hash) as ApiKey | undefined;
 
     if (record) {
-        // Update last used asynchronously (fire and forget)
-        // We use a different statement to avoid locking issues if possible, though WAL handles it well
         try {
             const update = db.prepare("UPDATE api_keys SET last_used_at = ? WHERE key_hash = ?");
             update.run(Date.now(), hash);

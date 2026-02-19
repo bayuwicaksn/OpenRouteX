@@ -5,10 +5,28 @@ import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
 
 interface AddAccountFormProps {
     onSuccess?: () => void;
 }
+
+const OAUTH_PROVIDERS = new Set(["antigravity", "openai-codex", "qwen-portal"]);
+
+const PROVIDERS = [
+    { value: "google", label: "Google Gemini", type: "API Key" },
+    { value: "antigravity", label: "Google Antigravity", type: "Auth" },
+    { value: "openai-codex", label: "OpenAI Codex", type: "Login" },
+    { value: "openai", label: "OpenAI", type: "API Key" },
+    { value: "qwen-portal", label: "Qwen Portal", type: "Auth" },
+    { value: "qwen-dashscope", label: "Qwen DashScope", type: "API Key" },
+    { value: "anthropic", label: "Anthropic", type: "API Key" },
+    { value: "mistral", label: "Mistral", type: "API Key" },
+    { value: "groq", label: "Groq", type: "API Key" },
+    { value: "openrouter", label: "OpenRouter", type: "API Key" },
+    { value: "nvidia", label: "Nvidia NIM", type: "API Key" },
+];
 
 export function AddAccountForm({ onSuccess }: AddAccountFormProps) {
     const [provider, setProvider] = useState("google");
@@ -18,44 +36,38 @@ export function AddAccountForm({ onSuccess }: AddAccountFormProps) {
     const [error, setError] = useState<string | null>(null);
     const [authUrl, setAuthUrl] = useState<string | null>(null);
 
+    const isOAuth = OAUTH_PROVIDERS.has(provider);
+
     const submitManualCode = async (inputUrl: string) => {
         if (!inputUrl) return;
 
-        // Extract code/state from URL or use raw if valid
         let targetUrl = inputUrl;
 
-        // If it's a localhost URL, rewrite it to target the server's exposing port
-        // But since we are on the client, we need to hit the server's public IP.
-        // Actually, we can just proxy this request via our own backend or hit the port directly if exposed.
-        // If 1455 is exposed, we can hit window.location.hostname:1455
-
         try {
-            // Check if it's a url
             const urlObj = new URL(inputUrl);
             const code = urlObj.searchParams.get("code");
             const state = urlObj.searchParams.get("state");
 
             if (code && state) {
-                // Construct URL pointing to the actual server port
                 const protocol = window.location.protocol;
                 const hostname = window.location.hostname;
-                const port = "1455"; // Docker exposed port
+                const port = "1455";
 
                 targetUrl = `${protocol}//${hostname}:${port}/auth/callback?code=${code}&state=${state}`;
-
-                // If using https on main app but 1455 is http, mixed content block might occur.
-                // But let's try.
             }
         } catch {
-            // Not a URL? maybe just code? We need state too usually.
+            // Not a URL
         }
 
         try {
-            const res = await fetch(targetUrl, { mode: 'no-cors' });
-            // opaque response with no-cors, but request is sent.
-            alert("Code submitted to server! If successful, the 'Connecting...' state will finish shortly.");
+            await fetch(targetUrl, { mode: 'no-cors' });
+            toast.success("Code submitted to server!", {
+                description: "If successful, the connection will complete shortly.",
+            });
         } catch (e: any) {
-            alert("Failed to submit code: " + e.message + "\n\nMake sure port 1455 is allowed in your firewall.");
+            toast.error("Failed to submit code", {
+                description: e.message + "\n\nMake sure port 1455 is allowed in your firewall.",
+            });
         }
     };
 
@@ -70,9 +82,9 @@ export function AddAccountForm({ onSuccess }: AddAccountFormProps) {
                 label,
                 apiKey,
             });
-            // Reset form
             setLabel("");
             setApiKey("");
+            toast.success("Account added successfully");
             onSuccess?.();
         } catch (err: any) {
             setError(err.response?.data?.error || err.message);
@@ -86,8 +98,6 @@ export function AddAccountForm({ onSuccess }: AddAccountFormProps) {
         setError(null);
         setAuthUrl(null);
 
-        // [Popup Fix] Open window immediately (Trusted Event) to bypass blocker
-        // We keep a reference to it and update the URL later.
         const authWindow = window.open('', '_blank', 'width=600,height=700');
         if (authWindow) {
             authWindow.document.write(`
@@ -143,7 +153,6 @@ export function AddAccountForm({ onSuccess }: AddAccountFormProps) {
                 buffer += chunk;
                 const lines = buffer.split("\n");
 
-                // Keep the last part in the buffer as it might be incomplete
                 buffer = lines.pop() || "";
 
                 for (const line of lines) {
@@ -157,17 +166,17 @@ export function AddAccountForm({ onSuccess }: AddAccountFormProps) {
                             console.log("[Auth] Opening URL:", data.url);
                             setAuthUrl(data.url);
 
-                            // [Popup Fix] Update the existing window
                             if (authWindow && !authWindow.closed) {
                                 authWindow.location.href = data.url;
                             } else {
-                                // Fallback if user somehow closed it or it failed
                                 window.open(data.url, "_blank");
                             }
 
                         } else if (data.success) {
-                            alert(`Authenticated as ${data.profile?.label}`);
-                            if (authWindow && !authWindow.closed) authWindow.close(); // Close on success
+                            toast.success(`Authenticated as ${data.profile?.label}`, {
+                                description: `Provider: ${provider}`,
+                            });
+                            if (authWindow && !authWindow.closed) authWindow.close();
                             onSuccess?.();
                             return;
                         } else if (data.error) {
@@ -175,7 +184,6 @@ export function AddAccountForm({ onSuccess }: AddAccountFormProps) {
                         } else if (data.action === "log" || data.action === "progress") {
                             console.log(`[Auth] ${data.message}`);
                             if (authWindow && !authWindow.closed && data.action === "progress") {
-                                // Update status in popup if possible (cross-origin might block if already navigated, but fine before)
                                 try {
                                     authWindow.document.body.innerHTML = `<h3>Authentication in progress...</h3><p>${data.message}</p>`;
                                 } catch (e) { /* ignore cross-origin errors */ }
@@ -190,7 +198,7 @@ export function AddAccountForm({ onSuccess }: AddAccountFormProps) {
 
         } catch (err: any) {
             setError(err.message || "Authentication failed");
-            if (authWindow && !authWindow.closed) authWindow.close(); // Close on error
+            if (authWindow && !authWindow.closed) authWindow.close();
         } finally {
             setIsLoading(false);
         }
@@ -206,27 +214,24 @@ export function AddAccountForm({ onSuccess }: AddAccountFormProps) {
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="space-y-2">
                         <Label>Provider</Label>
-                        {/* Simple select for now since I might not have shadcn select installed yet */}
-                        <select
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                            value={provider}
-                            onChange={(e) => setProvider(e.target.value)}
-                        >
-                            <option value="google">Google Gemini (API Key)</option>
-                            <option value="antigravity">Google Antigravity (Auth)</option>
-                            <option value="openai-codex">OpenAI Codex (Login)</option>
-                            <option value="openai">OpenAI (API Key)</option>
-                            <option value="qwen-portal">Qwen Portal (Auth)</option>
-                            <option value="qwen-dashscope">Qwen DashScope (API Key)</option>
-                            <option value="anthropic">Anthropic</option>
-                            <option value="mistral">Mistral</option>
-                            <option value="groq">Groq</option>
-                            <option value="openrouter">OpenRouter</option>
-                            <option value="nvidia">Nvidia NIM</option>
-                        </select>
+                        <Select value={provider} onValueChange={setProvider}>
+                            <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Select a provider" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {PROVIDERS.map((p) => (
+                                    <SelectItem key={p.value} value={p.value}>
+                                        <span className="flex items-center justify-between gap-3 w-full">
+                                            <span>{p.label}</span>
+                                            <span className="text-xs text-muted-foreground">{p.type}</span>
+                                        </span>
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
 
-                    {!(provider === "antigravity" || provider === "openai-codex" || provider === "qwen-portal") && (
+                    {!isOAuth && (
                         <div className="space-y-2">
                             <Label>Label / Email</Label>
                             <Input
@@ -238,7 +243,7 @@ export function AddAccountForm({ onSuccess }: AddAccountFormProps) {
                         </div>
                     )}
 
-                    {(provider === "antigravity" || provider === "openai-codex" || provider === "qwen-portal") ? (
+                    {isOAuth ? (
                         <div className="space-y-2">
                             <Label>Authentication</Label>
                             <Button type="button" variant="outline" className="w-full" onClick={handleOAuthLogin} disabled={isLoading}>
@@ -275,7 +280,6 @@ export function AddAccountForm({ onSuccess }: AddAccountFormProps) {
                                 </a>
                             </div>
 
-                            {/* Manual Input Fallback */}
                             {provider === "openai-codex" && (
                                 <div className="p-4 border rounded-md bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200 dark:border-yellow-800">
                                     <p className="text-sm font-semibold text-yellow-800 dark:text-yellow-200 mb-2">
@@ -311,11 +315,11 @@ export function AddAccountForm({ onSuccess }: AddAccountFormProps) {
                             )}
                         </div>
                     )}
-                    {error && <div className="text-sm text-red-500">{error}</div>}
+                    {error && <div className="text-sm text-destructive">{error}</div>}
                 </form>
             </CardContent>
             <CardFooter>
-                {!(provider === "antigravity" || provider === "openai-codex" || provider === "qwen-portal") && (
+                {!isOAuth && (
                     <Button type="submit" onClick={handleSubmit} disabled={isLoading} className="w-full">
                         {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Save Account"}
                     </Button>

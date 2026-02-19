@@ -4,6 +4,8 @@ import { ThemeProvider } from "./components/theme-provider";
 import { AuthProvider, useAuth } from "./hooks/use-auth";
 import Login from "./pages/Login";
 import { Loader2 } from "lucide-react";
+import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const queryClient = new QueryClient();
 
@@ -30,7 +32,10 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <ThemeProvider defaultTheme="dark" storageKey="smart-router-theme">
-          <MainContent />
+          <TooltipProvider delayDuration={300}>
+            <MainContent />
+            <Toaster richColors position="bottom-right" />
+          </TooltipProvider>
         </ThemeProvider>
       </AuthProvider>
     </QueryClientProvider>

@@ -10,6 +10,20 @@ import { Input } from "@/components/ui/input";
 import { ApiKeysTab } from "./ApiKeysTab";
 import { AddAccountForm } from "./AddAccountForm";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface SettingsViewProps {
     onBack: () => void;
@@ -19,20 +33,23 @@ export function SettingsView({ onBack }: SettingsViewProps) {
     const { data, refetch, isLoading } = useQuery({
         queryKey: ["config"],
         queryFn: fetchConfig,
-        // Always fetch when mounted
     });
 
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [modelFilter, setModelFilter] = useState("");
 
     const handleDelete = async (id: string) => {
-        if (!confirm(`Delete profile ${id}?`)) return;
         setDeletingId(id);
         try {
             await deleteProfile(id);
             await refetch();
+            toast.success("Profile deleted", {
+                description: `Removed ${id}`,
+            });
         } catch (err) {
-            alert("Failed to delete profile");
+            toast.error("Failed to delete profile", {
+                description: "Please try again.",
+            });
         } finally {
             setDeletingId(null);
         }
@@ -45,8 +62,27 @@ export function SettingsView({ onBack }: SettingsViewProps) {
 
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center h-screen bg-background text-foreground">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <div className="min-h-screen bg-background text-foreground flex flex-col">
+                <header className="border-b bg-card px-6 py-4 flex items-center gap-4 sticky top-0 z-10">
+                    <Button variant="ghost" size="icon" onClick={onBack}>
+                        <ArrowLeft className="h-5 w-5" />
+                    </Button>
+                    <div>
+                        <Skeleton className="h-6 w-24 mb-1" />
+                        <Skeleton className="h-4 w-64" />
+                    </div>
+                </header>
+                <div className="flex-1 p-6 max-w-7xl mx-auto w-full space-y-6">
+                    <Skeleton className="h-10 w-96" />
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="lg:col-span-2 space-y-4">
+                            {[...Array(3)].map((_, i) => (
+                                <Skeleton key={i} className="h-20 w-full rounded-lg" />
+                            ))}
+                        </div>
+                        <Skeleton className="h-64 w-full rounded-lg" />
+                    </div>
+                </div>
             </div>
         );
     }
@@ -55,9 +91,14 @@ export function SettingsView({ onBack }: SettingsViewProps) {
         <div className="min-h-screen bg-background text-foreground flex flex-col">
             {/* Header */}
             <header className="border-b bg-card px-6 py-4 flex items-center gap-4 sticky top-0 z-10">
-                <Button variant="ghost" size="icon" onClick={onBack}>
-                    <ArrowLeft className="h-5 w-5" />
-                </Button>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" onClick={onBack}>
+                            <ArrowLeft className="h-5 w-5" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Back to Dashboard</TooltipContent>
+                </Tooltip>
                 <div>
                     <h1 className="text-xl font-bold">Settings</h1>
                     <p className="text-sm text-muted-foreground">Manage accounts, models, and system configuration</p>
@@ -104,9 +145,40 @@ export function SettingsView({ onBack }: SettingsViewProps) {
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center gap-2">
-                                                        <Button variant="ghost" size="icon" onClick={() => handleDelete(p.id)} disabled={deletingId === p.id} className="text-destructive hover:text-destructive hover:bg-destructive/10">
-                                                            {deletingId === p.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                                                        </Button>
+                                                        <AlertDialog>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <AlertDialogTrigger asChild>
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="icon"
+                                                                            disabled={deletingId === p.id}
+                                                                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                                        >
+                                                                            {deletingId === p.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                                                        </Button>
+                                                                    </AlertDialogTrigger>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>Delete Profile</TooltipContent>
+                                                            </Tooltip>
+                                                            <AlertDialogContent>
+                                                                <AlertDialogHeader>
+                                                                    <AlertDialogTitle>Delete Profile</AlertDialogTitle>
+                                                                    <AlertDialogDescription>
+                                                                        Are you sure you want to delete profile <span className="font-mono font-semibold">{p.id}</span>? This action cannot be undone.
+                                                                    </AlertDialogDescription>
+                                                                </AlertDialogHeader>
+                                                                <AlertDialogFooter>
+                                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                                    <AlertDialogAction
+                                                                        onClick={() => handleDelete(p.id)}
+                                                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                                    >
+                                                                        Delete
+                                                                    </AlertDialogAction>
+                                                                </AlertDialogFooter>
+                                                            </AlertDialogContent>
+                                                        </AlertDialog>
                                                     </div>
                                                 </div>
                                             ))}

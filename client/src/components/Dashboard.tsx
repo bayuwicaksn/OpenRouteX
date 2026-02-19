@@ -4,22 +4,18 @@ import { StatsGrid } from "./StatsGrid";
 import { RecentActivity } from "./RecentActivity";
 import { Charts } from "./Charts";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Settings } from "lucide-react";
-// import { AddAccountDialog } from "./AddAccountDialog"; // Removed
-// import { ManagementDialog } from "./ManagementDialog"; // Removed
+import { RefreshCw, Settings, MessageSquare, LogOut } from "lucide-react";
 import { useState } from "react";
 import { ModeToggle } from "./mode-toggle";
 import { useAuth } from "@/hooks/use-auth";
-import { LogOut } from "lucide-react";
-
 import { SettingsView } from "./SettingsView";
-
 import { ChatView } from "./ChatView";
-import { MessageSquare } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 export function Dashboard() {
-    // const [isAddOpen, setIsAddOpen] = useState(false); // Removed
-    // const [isManageOpen, setIsManageOpen] = useState(false); // Removed
     const [view, setView] = useState<'dashboard' | 'settings' | 'chat'>('dashboard');
     const { logout } = useAuth();
 
@@ -27,7 +23,7 @@ export function Dashboard() {
         queryKey: ["stats"],
         queryFn: fetchStats,
         refetchInterval: 5000,
-        enabled: view === 'dashboard', // Pause fetching when in settings or chat
+        enabled: view === 'dashboard',
     });
 
     if (view === 'settings') {
@@ -52,31 +48,55 @@ export function Dashboard() {
                             <p className="text-muted-foreground text-sm">Real-time LLM Gateway Monitor</p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2 text-sm text-green-500 mr-2">
-                            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                    <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-green-500 border-green-500/30 bg-green-500/5 mr-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse mr-1.5" />
                             Online
-                        </div>
+                        </Badge>
 
                         <ModeToggle />
 
-                        <Button variant="ghost" size="sm" onClick={() => setView('chat')}>
-                            <MessageSquare className="w-4 h-4 mr-2" />
-                            Chat
-                        </Button>
+                        <Separator orientation="vertical" className="h-6 mx-1" />
 
-                        <Button variant="outline" size="sm" onClick={() => setView('settings')}>
-                            <Settings className="w-4 h-4 mr-2" />
-                            Manage
-                        </Button>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="ghost" size="sm" onClick={() => setView('chat')}>
+                                    <MessageSquare className="w-4 h-4 mr-2" />
+                                    Chat
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Test models with live chat</TooltipContent>
+                        </Tooltip>
 
-                        <Button variant="ghost" size="icon" onClick={() => refetch()} disabled={isFetching}>
-                            <RefreshCw className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`} />
-                        </Button>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="outline" size="sm" onClick={() => setView('settings')}>
+                                    <Settings className="w-4 h-4 mr-2" />
+                                    Manage
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Manage accounts, models & API keys</TooltipContent>
+                        </Tooltip>
 
-                        <Button variant="ghost" size="icon" onClick={() => logout()} title="Logout">
-                            <LogOut className="w-4 h-4" />
-                        </Button>
+                        <Separator orientation="vertical" className="h-6 mx-1" />
+
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" onClick={() => refetch()} disabled={isFetching}>
+                                    <RefreshCw className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`} />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Refresh stats</TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" onClick={() => logout()}>
+                                    <LogOut className="w-4 h-4" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Logout</TooltipContent>
+                        </Tooltip>
                     </div>
                 </header>
 
@@ -89,32 +109,32 @@ export function Dashboard() {
                     <Charts providerBreakdown={data?.summary.providerBreakdown || {}} />
 
                     <div className="lg:col-span-2 space-y-6">
-                        <div className="rounded-xl border bg-card text-card-foreground shadow-sm">
-                            <div className="p-6 flex flex-row items-center justify-between space-y-0 pb-2">
-                                <h3 className="font-semibold leading-none tracking-tight">Recent Activity</h3>
-                            </div>
-                            <div className="p-6 pt-0">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Recent Activity</CardTitle>
+                            </CardHeader>
+                            <CardContent>
                                 <RecentActivity logs={data?.requests || []} />
-                            </div>
-                        </div>
+                            </CardContent>
+                        </Card>
                     </div>
 
-                    <div className="space-y-6">
-                        {/* Active Providers List - Placeholder for now, could be its own component */}
-                        <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6">
-                            <h3 className="font-semibold mb-4">Active Providers</h3>
-                            {/* We can fetch config or derive from activeProviders list in stats */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Active Providers</CardTitle>
+                        </CardHeader>
+                        <CardContent>
                             <div className="space-y-2">
                                 {data?.activeProviders?.map(p => (
                                     <div key={p} className="flex items-center gap-2 text-sm">
-                                        <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                                        <span className="uppercase">{p}</span>
+                                        <span className="w-2 h-2 rounded-full bg-green-500" />
+                                        <span className="uppercase font-medium">{p}</span>
                                     </div>
                                 ))}
                                 {!data?.activeProviders?.length && <p className="text-sm text-muted-foreground">No active providers</p>}
                             </div>
-                        </div>
-                    </div>
+                        </CardContent>
+                    </Card>
                 </div>
             </div>
         </div>

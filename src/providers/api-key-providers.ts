@@ -1,5 +1,5 @@
 import { createApiKeyProvider } from "./base.js";
-import type { Provider } from "../types.js";
+import type { Provider } from "../shared/types.js";
 
 // 1. OpenAI
 export const openaiProvider: Provider = createApiKeyProvider({

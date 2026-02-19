@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { mkdirSync, existsSync } from "node:fs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const DATA_DIR = join(__dirname, "..", "data");
+const DATA_DIR = join(__dirname, "..", "..", "data");
 const DB_PATH = join(DATA_DIR, "smart-router.db");
 
 // Ensure data directory exists

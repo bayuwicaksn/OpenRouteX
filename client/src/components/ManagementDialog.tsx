@@ -9,6 +9,20 @@ import { Trash2, Loader2, Search } from "lucide-react";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { ApiKeysTab } from "./ApiKeysTab";
+import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ManagementDialogProps {
     open: boolean;
@@ -19,20 +33,24 @@ export function ManagementDialog({ open, onOpenChange }: ManagementDialogProps) 
     const { data, refetch, isLoading } = useQuery({
         queryKey: ["config"],
         queryFn: fetchConfig,
-        enabled: open, // Only fetch when open
+        enabled: open,
     });
 
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [modelFilter, setModelFilter] = useState("");
 
     const handleDelete = async (id: string) => {
-        if (!confirm(`Delete profile ${id}?`)) return;
         setDeletingId(id);
         try {
             await deleteProfile(id);
             await refetch();
+            toast.success("Profile deleted", {
+                description: `Removed ${id}`,
+            });
         } catch (err) {
-            alert("Failed to delete profile");
+            toast.error("Failed to delete profile", {
+                description: "Please try again.",
+            });
         } finally {
             setDeletingId(null);
         }
@@ -51,8 +69,13 @@ export function ManagementDialog({ open, onOpenChange }: ManagementDialogProps) 
                 </DialogHeader>
 
                 {isLoading ? (
-                    <div className="flex items-center justify-center flex-1">
-                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    <div className="flex-1 space-y-4 p-4">
+                        <Skeleton className="h-10 w-72" />
+                        <div className="space-y-3">
+                            {[...Array(4)].map((_, i) => (
+                                <Skeleton key={i} className="h-16 w-full rounded-lg" />
+                            ))}
+                        </div>
                     </div>
                 ) : (
                     <Tabs defaultValue="profiles" className="flex-1 flex flex-col overflow-hidden">
@@ -90,9 +113,35 @@ export function ManagementDialog({ open, onOpenChange }: ManagementDialogProps) 
                                                 <Badge variant={p.state === 'ACTIVE' ? 'default' : p.state === 'COOLDOWN' ? 'secondary' : 'destructive'}>
                                                     {p.state}
                                                 </Badge>
-                                                <Button variant="ghost" size="icon" onClick={() => handleDelete(p.id)} disabled={deletingId === p.id}>
-                                                    {deletingId === p.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 text-destructive" />}
-                                                </Button>
+                                                <AlertDialog>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <AlertDialogTrigger asChild>
+                                                                <Button variant="ghost" size="icon" disabled={deletingId === p.id}>
+                                                                    {deletingId === p.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 text-destructive" />}
+                                                                </Button>
+                                                            </AlertDialogTrigger>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>Delete Profile</TooltipContent>
+                                                    </Tooltip>
+                                                    <AlertDialogContent>
+                                                        <AlertDialogHeader>
+                                                            <AlertDialogTitle>Delete Profile</AlertDialogTitle>
+                                                            <AlertDialogDescription>
+                                                                Are you sure you want to delete profile <span className="font-mono font-semibold">{p.id}</span>? This action cannot be undone.
+                                                            </AlertDialogDescription>
+                                                        </AlertDialogHeader>
+                                                        <AlertDialogFooter>
+                                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                            <AlertDialogAction
+                                                                onClick={() => handleDelete(p.id)}
+                                                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                            >
+                                                                Delete
+                                                            </AlertDialogAction>
+                                                        </AlertDialogFooter>
+                                                    </AlertDialogContent>
+                                                </AlertDialog>
                                             </div>
                                         </div>
                                     ))}
@@ -143,7 +192,7 @@ export function ManagementDialog({ open, onOpenChange }: ManagementDialogProps) 
                                                 </div>
                                                 <div className="text-right">
                                                     <div className="text-xs text-muted-foreground">Rate Limit</div>
-                                                    <div className="font-mono text-sm">{p.rateLimits ? `${p.rateLimits.requestsPerMinute} RPM` : 'Unlimited'}</div>
+                                                    <Badge variant="outline" className="font-mono text-sm">{p.rateLimits ? `${p.rateLimits.requestsPerMinute} RPM` : 'Unlimited'}</Badge>
                                                 </div>
                                             </div>
                                         </div>

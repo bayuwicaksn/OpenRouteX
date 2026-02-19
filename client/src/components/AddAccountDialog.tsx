@@ -3,15 +3,30 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // Need to install select!
-// Wait, I missed installing 'select' component.
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 import { api } from "@/lib/api";
+import { toast } from "sonner";
 
 interface AddAccountDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
 }
+
+const OAUTH_PROVIDERS = new Set(["antigravity", "openai-codex", "qwen-portal"]);
+
+const PROVIDERS = [
+    { value: "google", label: "Google Gemini", type: "API Key" },
+    { value: "antigravity", label: "Google Antigravity", type: "Auth" },
+    { value: "openai-codex", label: "OpenAI Codex", type: "Login" },
+    { value: "openai", label: "OpenAI", type: "API Key" },
+    { value: "qwen-portal", label: "Qwen Portal", type: "Auth" },
+    { value: "qwen-dashscope", label: "Qwen DashScope", type: "API Key" },
+    { value: "anthropic", label: "Anthropic", type: "API Key" },
+    { value: "mistral", label: "Mistral", type: "API Key" },
+    { value: "groq", label: "Groq", type: "API Key" },
+    { value: "openrouter", label: "OpenRouter", type: "API Key" },
+];
 
 export function AddAccountDialog({ open, onOpenChange }: AddAccountDialogProps) {
     const [provider, setProvider] = useState("google");
@@ -19,6 +34,8 @@ export function AddAccountDialog({ open, onOpenChange }: AddAccountDialogProps) 
     const [apiKey, setApiKey] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    const isOAuth = OAUTH_PROVIDERS.has(provider);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -32,7 +49,7 @@ export function AddAccountDialog({ open, onOpenChange }: AddAccountDialogProps) 
                 apiKey,
             });
             onOpenChange(false);
-            // Trigger refresh? Invalidate query in parent
+            toast.success("Account added successfully");
         } catch (err: any) {
             setError(err.response?.data?.error || err.message);
         } finally {
@@ -48,9 +65,10 @@ export function AddAccountDialog({ open, onOpenChange }: AddAccountDialogProps) 
                 provider: provider,
                 label: label || 'default'
             });
-            // Check if successful
             if (res.data.success) {
-                alert(`Authenticated as ${res.data.profile.label}`);
+                toast.success(`Authenticated as ${res.data.profile.label}`, {
+                    description: `Provider: ${provider}`,
+                });
                 onOpenChange(false);
             }
         } catch (err: any) {
@@ -69,23 +87,21 @@ export function AddAccountDialog({ open, onOpenChange }: AddAccountDialogProps) 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="space-y-2">
                         <Label>Provider</Label>
-                        {/* Simple select for now since I might not have shadcn select installed yet */}
-                        <select
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                            value={provider}
-                            onChange={(e) => setProvider(e.target.value)}
-                        >
-                            <option value="google">Google Gemini (API Key)</option>
-                            <option value="antigravity">Google Antigravity (Auth)</option>
-                            <option value="openai-codex">OpenAI Codex (Login)</option>
-                            <option value="openai">OpenAI (API Key)</option>
-                            <option value="qwen-portal">Qwen Portal (Auth)</option>
-                            <option value="qwen-dashscope">Qwen DashScope (API Key)</option>
-                            <option value="anthropic">Anthropic</option>
-                            <option value="mistral">Mistral</option>
-                            <option value="groq">Groq</option>
-                            <option value="openrouter">OpenRouter</option>
-                        </select>
+                        <Select value={provider} onValueChange={setProvider}>
+                            <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Select a provider" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {PROVIDERS.map((p) => (
+                                    <SelectItem key={p.value} value={p.value}>
+                                        <span className="flex items-center justify-between gap-3 w-full">
+                                            <span>{p.label}</span>
+                                            <span className="text-xs text-muted-foreground">{p.type}</span>
+                                        </span>
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
 
                     <div className="space-y-2">
@@ -94,11 +110,11 @@ export function AddAccountDialog({ open, onOpenChange }: AddAccountDialogProps) 
                             placeholder="user@example.com"
                             value={label}
                             onChange={(e) => setLabel(e.target.value)}
-                            required
+                            required={!isOAuth}
                         />
                     </div>
 
-                    {(provider === "antigravity" || provider === "openai-codex" || provider === "qwen-portal") ? (
+                    {isOAuth ? (
                         <div className="space-y-2">
                             <Label>Authentication</Label>
                             <Button type="button" variant="outline" className="w-full" onClick={handleOAuthLogin} disabled={isLoading}>
@@ -120,10 +136,10 @@ export function AddAccountDialog({ open, onOpenChange }: AddAccountDialogProps) 
                         </div>
                     )}
 
-                    {error && <div className="text-sm text-red-500">{error}</div>}
+                    {error && <div className="text-sm text-destructive">{error}</div>}
 
                     <DialogFooter>
-                        {!(provider === "antigravity" || provider === "openai-codex" || provider === "qwen-portal") && (
+                        {!isOAuth && (
                             <Button type="submit" disabled={isLoading}>
                                 {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Save Account"}
                             </Button>

@@ -3,7 +3,7 @@ import type {
     ChatCompletionRequest,
     ProfileCredential,
     LoginContext,
-} from "../types.js";
+} from "../shared/types.js";
 
 // ── GitHub Copilot device code (from openclaw github-copilot-auth) ──
 

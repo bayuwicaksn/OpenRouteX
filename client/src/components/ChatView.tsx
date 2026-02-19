@@ -4,7 +4,11 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Send, Bot, User, Loader2, ArrowLeft, Brain } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { fetchConfig, sendChat, type ChatMessage, type ChatCompletionRequest } from "@/lib/api";
+import { fetchConfig, type ChatMessage } from "@/lib/api";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 
 interface ChatViewProps {
     onBack: () => void;
@@ -28,11 +32,10 @@ export function ChatView({ onBack }: ChatViewProps) {
 
     useEffect(() => {
         if (models.length > 0 && !selectedModel) {
-            // Prefer first available model
             const firstAvailable = models.find(m => availableProviders.has(m.provider));
             setSelectedModel(firstAvailable ? firstAvailable.id : models[0].id);
         }
-    }, [models, selectedModel, config]); // config dependency added for availableProviders recreation check (though inefficient, it works)
+    }, [models, selectedModel, config]);
 
     const availableModels = models.filter(m => availableProviders.has(m.provider) || m.provider === "router");
     const unavailableModels = models.filter(m => !availableProviders.has(m.provider));
@@ -98,7 +101,6 @@ export function ChatView({ onBack }: ChatViewProps) {
                                 const newMessages = [...prev];
                                 const lastMsg = newMessages[newMessages.length - 1];
                                 if (lastMsg.role === "assistant") {
-                                    // Parse <think> tags from content if reasoning_content wasn't provided directly
                                     let displayContent = accumulatedContent;
                                     let extraReasoning = "";
 
@@ -107,7 +109,6 @@ export function ChatView({ onBack }: ChatViewProps) {
                                         extraReasoning = thinkMatch[1];
                                         displayContent = accumulatedContent.replace(/<think>.*?<\/think>/s, "").trim();
                                     } else if (accumulatedContent.includes("<think>")) {
-                                        // Still streaming the think block
                                         const startIndex = accumulatedContent.indexOf("<think>");
                                         extraReasoning = accumulatedContent.slice(startIndex + 7);
                                         displayContent = accumulatedContent.slice(0, startIndex).trim();
@@ -149,35 +150,49 @@ export function ChatView({ onBack }: ChatViewProps) {
                     </Button>
                     <h2 className="text-lg font-semibold">Chat</h2>
                 </div>
-                <div className="flex items-center gap-2">
-                    <Button
-                        variant={enableReasoning ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setEnableReasoning(!enableReasoning)}
-                        title="Toggle Reasoning"
-                        className="gap-2"
-                    >
-                        <Brain className="w-4 h-4" />
-                        <span className="hidden sm:inline">Thinking</span>
-                    </Button>
-                    <select
-                        className="px-3 py-2 bg-background border rounded-md text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        value={selectedModel}
-                        onChange={(e) => setSelectedModel(e.target.value)}
-                    >
-                        <optgroup label="Available Models">
-                            {availableModels.map(m => (
-                                <option key={m.id} value={m.id}>🟢 {m.name}</option>
-                            ))}
-                        </optgroup>
-                        {unavailableModels.length > 0 && (
-                            <optgroup label="Unavailable (Provider Offline)">
-                                {unavailableModels.map(m => (
-                                    <option key={m.id} value={m.id} disabled>🔴 {m.name} ({m.provider})</option>
-                                ))}
-                            </optgroup>
-                        )}
-                    </select>
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                        <Switch
+                            id="thinking-toggle"
+                            checked={enableReasoning}
+                            onCheckedChange={setEnableReasoning}
+                        />
+                        <Label htmlFor="thinking-toggle" className="text-sm flex items-center gap-1.5 cursor-pointer">
+                            <Brain className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">Thinking</span>
+                        </Label>
+                    </div>
+                    <Separator orientation="vertical" className="h-6" />
+                    <Select value={selectedModel} onValueChange={setSelectedModel}>
+                        <SelectTrigger className="w-[220px]">
+                            <SelectValue placeholder="Select a model" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {availableModels.length > 0 && (
+                                <SelectGroup>
+                                    <SelectLabel>Available Models</SelectLabel>
+                                    {availableModels.map(m => (
+                                        <SelectItem key={m.id} value={m.id}>
+                                            🟢 {m.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectGroup>
+                            )}
+                            {unavailableModels.length > 0 && (
+                                <>
+                                    <SelectSeparator />
+                                    <SelectGroup>
+                                        <SelectLabel>Unavailable (Provider Offline)</SelectLabel>
+                                        {unavailableModels.map(m => (
+                                            <SelectItem key={m.id} value={m.id} disabled>
+                                                🔴 {m.name} ({m.provider})
+                                            </SelectItem>
+                                        ))}
+                                    </SelectGroup>
+                                </>
+                            )}
+                        </SelectContent>
+                    </Select>
                 </div>
             </div>
 

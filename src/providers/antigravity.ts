@@ -7,19 +7,13 @@ import type {
   ProfileCredential,
   OAuthCredential,
   LoginContext,
-} from "../types.js";
+} from "../shared/types.js";
 
-// ── OAuth constants (from google-antigravity-auth) ─────────
+// ── OAuth constants ─────────────────────────────────────────
+// Set ANTIGRAVITY_CLIENT_ID and ANTIGRAVITY_CLIENT_SECRET in your .env
 
-const CLIENT_ID = Buffer.from(
-  "MTA3MTAwNjA2MDU5MS10bWhzc2luMmgyMWxjcmUyMzV2dG9sb2poNGc0MDNlcC5hcHBzLmdvb2dsZXVzZXJjb250ZW50LmNvbQ==",
-  "base64"
-).toString();
-
-const CLIENT_SECRET = Buffer.from(
-  "R09DU1BYLUs1OEZXUjQ4NkxkTEoxbUxCOHNYQzR6NnFEQWY=",
-  "base64"
-).toString();
+const CLIENT_ID = process.env.ANTIGRAVITY_CLIENT_ID ?? "";
+const CLIENT_SECRET = process.env.ANTIGRAVITY_CLIENT_SECRET ?? "";
 
 const AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";

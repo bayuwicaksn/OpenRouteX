@@ -5,7 +5,7 @@ import type {
     ProfileCredential,
     OAuthCredential,
     LoginContext,
-} from "../types.js";
+} from "../shared/types.js";
 
 // ── Qwen OAuth constants (from openclaw qwen-portal-auth) ──────────
 

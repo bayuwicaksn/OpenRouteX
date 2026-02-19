@@ -1,4 +1,4 @@
-import type { Provider, ChatCompletionRequest, ProfileCredential, LoginContext, OAuthCredential } from "../types.js";
+import type { Provider, ChatCompletionRequest, ProfileCredential, LoginContext, OAuthCredential } from "../shared/types.js";
 
 /**
  * Base provider with shared utilities.

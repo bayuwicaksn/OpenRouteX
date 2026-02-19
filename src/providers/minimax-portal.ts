@@ -5,7 +5,7 @@ import type {
     ProfileCredential,
     OAuthCredential,
     LoginContext,
-} from "../types.js";
+} from "../shared/types.js";
 
 // ── MiniMax OAuth constants (from openclaw minimax-portal-auth) ─────
 

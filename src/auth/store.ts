@@ -6,18 +6,17 @@ import type {
     ProfileCredential,
     ProfileUsageStats,
     FailureReason,
-} from "./types.js";
-import { logger } from "./logger.js";
-import { getProvider } from "./providers/index.js";
+} from "../shared/types.js";
+import { logger } from "../shared/logger.js";
+import { getProvider } from "../providers/index.js";
 
 // ── Store path ──────────────────────────────────────────────────────
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const DEFAULT_STORE_PATH = join(__dirname, "..", "data", "auth-store.json");
+const DEFAULT_STORE_PATH = join(__dirname, "..", "..", "data", "auth-store.json");
 
 function getStorePath(): string {
     const p = process.env.SMART_ROUTER_AUTH_STORE ?? DEFAULT_STORE_PATH;
-    // logger.info(`[AuthStore] Using path: ${p}`); // Too noisy for every call? Maybe once?
     return p;
 }
 
@@ -55,19 +54,14 @@ export function saveStore(store: AuthProfileStore): void {
             mkdirSync(dir, { recursive: true });
         }
         writeFileSync(path, JSON.stringify(store, null, 2) + "\n", "utf8");
-        // logger.info(`[AuthStore] Saved to ${path}`);
     } catch (err) {
         logger.error(`[AuthStore] Failed to save auth store to ${path}:`, err);
-        throw err; // Re-throw to alert caller
+        throw err;
     }
 }
 
 // ── Profile CRUD ────────────────────────────────────────────────────
 
-/**
- * Build profile ID from provider + optional label.
- * Examples: "antigravity:personal", "openai:default"
- */
 export function buildProfileId(provider: string, label?: string): string {
     return `${provider}:${label ?? "default"}`;
 }
@@ -80,7 +74,6 @@ export function upsertProfile(
     const store = loadStore();
     const profileId = buildProfileId(provider, label);
     store.profiles[profileId] = credential;
-    // Reset usage stats on new/updated profile
     store.usageStats[profileId] = { state: "ACTIVE", errorCount: 0 };
     saveStore(store);
     logger.ok(`Auth profile saved: ${profileId}`);
@@ -119,7 +112,6 @@ export function listAllProfiles(): Array<{
         const stats = store.usageStats[id] || { state: "ACTIVE" as const };
         const cooldownUntil = stats.cooldownUntil ?? 0;
 
-        // Final state logic for display
         let currentState = stats.state || "ACTIVE";
         if (currentState === "ACTIVE" && now < cooldownUntil) {
             currentState = "COOLDOWN";
@@ -141,12 +133,10 @@ export function getAvailableProviders(): Set<string> {
     const store = loadStore();
     const providers = new Set<string>();
 
-    // From auth store profiles
     for (const cred of Object.values(store.profiles)) {
         providers.add(cred.provider);
     }
 
-    // From environment variables (API key providers)
     const envMap: Record<string, string> = {
         OPENAI_API_KEY: "openai",
         GEMINI_API_KEY: "google",
@@ -169,10 +159,6 @@ export function getAvailableProviders(): Set<string> {
 
 // ── Round-robin profile selection ───────────────────────────────────
 
-/**
- * Pick the next available profile for a provider using round-robin,
- * skipping profiles in cooldown.
- */
 export function pickNextProfile(provider: string, modelId?: string): {
     profileId: string;
     credential: ProfileCredential;
@@ -180,7 +166,6 @@ export function pickNextProfile(provider: string, modelId?: string): {
     const store = loadStore();
     const now = Date.now();
 
-    // Get all profiles for this provider
     const candidates = Object.entries(store.profiles)
         .filter(([, cred]) => cred.provider === provider)
         .map(([id, cred]) => {
@@ -190,35 +175,27 @@ export function pickNextProfile(provider: string, modelId?: string): {
 
     if (candidates.length === 0) return null;
 
-    // Filter out profiles in COOLDOWN or DISABLED
     const available = candidates.filter((c) => {
         const stats = c.stats as ProfileUsageStats;
         if (stats.state === "DISABLED") return false;
 
-        // Global cooldown check
         const until = stats.cooldownUntil ?? 0;
-        // If global cooldown is active, return false (unless we want to allow retry for other reasons?)
         if (now < until) return false;
 
-        // Model-specific cooldown check
         if (modelId && stats.modelCooldowns?.[modelId]) {
             if (now < stats.modelCooldowns[modelId]) return false;
         }
 
-        // Model-specific cooldown check
         if (modelId && stats.modelCooldowns?.[modelId]) {
             if (now < stats.modelCooldowns[modelId]) return false;
         }
 
-        // Proactive Rate Limit Check
         const providerDef = getProvider(provider);
         const rpmLimit = providerDef?.rateLimits?.requestsPerMinute;
         if (rpmLimit && stats.rateLimitStats) {
             const { windowStart, requestCount } = stats.rateLimitStats;
             const windowElapsed = now - windowStart;
 
-            // If window expired, we will reset on next increment, so it's effectively available
-            // If window active, check count
             if (windowElapsed < 60000 && requestCount >= rpmLimit) {
                 return false;
             }
@@ -227,23 +204,16 @@ export function pickNextProfile(provider: string, modelId?: string): {
         return true;
     });
 
-    // If all in cooldown, pick the one with soonest expiry (fallback logic)
-    // But per user request, we might want to fail hard? 
-    // For now, let's return null if NO profile is available for this model.
     if (available.length === 0) {
         return null;
     }
 
-    // Round-robin: pick least recently used
     available.sort((a, b) => (a.stats.lastUsed ?? 0) - (b.stats.lastUsed ?? 0));
     const picked = available[0]!;
 
     return { profileId: picked.id, credential: picked.cred };
 }
 
-/**
- * For API key providers, check env var directly.
- */
 export function getApiKeyForProvider(provider: string): string | null {
     const envMap: Record<string, string> = {
         openai: "OPENAI_API_KEY",
@@ -283,33 +253,28 @@ export function incrementProfileUsage(profileId: string, providerId: string): vo
 
     let stats = existing.rateLimitStats;
 
-    // Initialize or reset window if needed
     if (!stats || (now - stats.windowStart) >= 60000) {
         stats = { windowStart: now, requestCount: 0 };
     }
 
-    // Increment
     stats.requestCount++;
 
     store.usageStats[profileId] = {
         ...existing,
-        lastUsed: now, // Also update lastUsed for LRU
+        lastUsed: now,
         rateLimitStats: stats,
     } as ProfileUsageStats;
 
     saveStore(store);
 }
 
-/**
- * Exponential backoff: DISABLED FOR TESTING
- */
 function calculateCooldownMs(errorCount: number): number {
     const sequence = [
-        30 * 1000,          // 30s
-        60 * 1000,          // 1m
-        120 * 1000,         // 2m
-        300 * 1000,         // 5m
-        600 * 1000,         // 10m
+        30 * 1000,
+        60 * 1000,
+        120 * 1000,
+        300 * 1000,
+        600 * 1000,
     ];
     const n = Math.max(1, errorCount);
     return sequence[Math.min(n - 1, sequence.length - 1)];
@@ -325,39 +290,31 @@ export function markProfileFailure(
     const existing = store.usageStats[profileId] ?? {};
     const errorCount = (existing.errorCount ?? 0) + 1;
 
-    // Default cooldown logic
     let cooldownMs = explicitCooldownMs ?? calculateCooldownMs(errorCount);
 
-    // If Antigravity and no explicit cooldown, assume 5 hours for safety
     if (profileId.startsWith("antigravity") && !explicitCooldownMs && reason === "rate_limit") {
-        cooldownMs = 5 * 60 * 60 * 1000; // 5 hours
+        cooldownMs = 5 * 60 * 60 * 1000;
     }
 
     const cooldownUntil = Date.now() + cooldownMs;
 
-    // Determine new state based on failure reason
     let newState: "COOLDOWN" | "DISABLED" | "ACTIVE" = "COOLDOWN";
     if (reason === "auth" || reason === "billing") {
         newState = "DISABLED";
     }
 
-    // If model-specific rate limit, don't block the whole profile
     const modelCooldowns = existing.modelCooldowns ?? {};
     if ((reason === "rate_limit" || reason === "model_not_found") && modelId) {
-        // Keep global state ACTIVE, just block this model
-        // Even if it was previously COOLDOWN (stale), we should reset to ACTIVE since we just tried to use it
         newState = existing.state === "DISABLED" ? "DISABLED" : "ACTIVE";
         modelCooldowns[modelId] = cooldownUntil;
     } else if (newState === "COOLDOWN") {
-        // Global cooldown (e.g. unknown error or no model specified)
-        // Check if we should block everything
+        // Global cooldown
     }
 
     store.usageStats[profileId] = {
         ...existing,
         state: newState,
         errorCount,
-        // Only set global cooldown if it's NOT a model-specific rate limit or not found
         cooldownUntil: (newState === "COOLDOWN" && (!modelId || (reason !== "rate_limit" && reason !== "model_not_found"))) ? cooldownUntil : existing.cooldownUntil,
         modelCooldowns,
         lastFailureAt: Date.now(),

@@ -1,4 +1,4 @@
-import type { Provider } from "../types.js";
+import type { Provider } from "../shared/types.js";
 
 // ── OAuth/Device code providers ─────────────────────────────────────
 import { antigravityProvider } from "./antigravity.js";

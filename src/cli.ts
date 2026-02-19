@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { exec } from "node:child_process";
-import { logger } from "./logger.js";
-import { startProxy } from "./proxy.js";
+import { logger } from "./shared/logger.js";
+import { startProxy } from "./server/index.js";
 import { getProvider, getAllProviders } from "./providers/index.js";
 import {
     upsertProfile,
@@ -9,11 +9,11 @@ import {
     listAllProfiles,
     getAvailableProviders,
     buildProfileId,
-} from "./auth-store.js";
+} from "./auth/store.js";
 import { classifyByRules } from "./router/index.js";
 import { selectModel } from "./router/selector.js";
-import { getStatsSummary } from "./stats.js";
-import type { LoginContext } from "./types.js";
+import { getStatsSummary } from "./storage/stats.js";
+import type { LoginContext } from "./shared/types.js";
 import { createInterface } from "node:readline";
 
 // ── CLI arg parsing ─────────────────────────────────────────────────

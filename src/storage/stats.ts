@@ -1,5 +1,5 @@
 import { db } from "./db.js";
-import type { RequestStats } from "./types.js";
+import type { RequestStats } from "../shared/types.js";
 
 type StatsSummary = {
     totalRequests: number;

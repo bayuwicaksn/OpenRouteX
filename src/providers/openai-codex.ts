@@ -8,7 +8,7 @@ import type {
     ProfileCredential,
     OAuthCredential,
     LoginContext,
-} from "../types.js";
+} from "../shared/types.js";
 
 // ── OpenAI Codex OAuth constants (from pi-ai) ──────────────────────
 
