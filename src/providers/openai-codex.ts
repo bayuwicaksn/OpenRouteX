@@ -15,7 +15,8 @@ import type {
 const CLIENT_ID = "app_EMoamEEZ73f0CkXaXp7hrann";
 const AUTHORIZE_URL = "https://auth.openai.com/oauth/authorize";
 const TOKEN_URL = "https://auth.openai.com/oauth/token";
-const REDIRECT_URI = "http://localhost:1455/auth/callback";
+// Allow overriding Redirect URI for remote servers (e.g. http://192.168.1.5:1455/auth/callback)
+const REDIRECT_URI = process.env.SMART_ROUTER_REDIRECT_URI || "http://localhost:1455/auth/callback";
 const SCOPE = "openid profile email offline_access";
 const JWT_CLAIM_PATH = "https://api.openai.com/auth";
 const JWT_PROFILE_PATH = "https://api.openai.com/profile";

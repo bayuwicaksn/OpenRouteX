@@ -18,6 +18,47 @@ export function AddAccountForm({ onSuccess }: AddAccountFormProps) {
     const [error, setError] = useState<string | null>(null);
     const [authUrl, setAuthUrl] = useState<string | null>(null);
 
+    const submitManualCode = async (inputUrl: string) => {
+        if (!inputUrl) return;
+
+        // Extract code/state from URL or use raw if valid
+        let targetUrl = inputUrl;
+
+        // If it's a localhost URL, rewrite it to target the server's exposing port
+        // But since we are on the client, we need to hit the server's public IP.
+        // Actually, we can just proxy this request via our own backend or hit the port directly if exposed.
+        // If 1455 is exposed, we can hit window.location.hostname:1455
+
+        try {
+            // Check if it's a url
+            const urlObj = new URL(inputUrl);
+            const code = urlObj.searchParams.get("code");
+            const state = urlObj.searchParams.get("state");
+
+            if (code && state) {
+                // Construct URL pointing to the actual server port
+                const protocol = window.location.protocol;
+                const hostname = window.location.hostname;
+                const port = "1455"; // Docker exposed port
+
+                targetUrl = `${protocol}//${hostname}:${port}/auth/callback?code=${code}&state=${state}`;
+
+                // If using https on main app but 1455 is http, mixed content block might occur.
+                // But let's try.
+            }
+        } catch {
+            // Not a URL? maybe just code? We need state too usually.
+        }
+
+        try {
+            const res = await fetch(targetUrl, { mode: 'no-cors' });
+            // opaque response with no-cors, but request is sent.
+            alert("Code submitted to server! If successful, the 'Connecting...' state will finish shortly.");
+        } catch (e: any) {
+            alert("Failed to submit code: " + e.message + "\n\nMake sure port 1455 is allowed in your firewall.");
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
@@ -220,16 +261,54 @@ export function AddAccountForm({ onSuccess }: AddAccountFormProps) {
                     )}
 
                     {authUrl && (
-                        <div className="p-3 mb-2 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-md text-sm">
-                            <p className="font-medium mb-1 text-blue-700 dark:text-blue-300">Popup blocked? Click to login:</p>
-                            <a
-                                href={authUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="break-all text-blue-600 dark:text-blue-400 underline hover:text-blue-800 dark:hover:text-blue-200"
-                            >
-                                {authUrl}
-                            </a>
+                        <div className="space-y-4">
+                            <div className="p-3 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-md text-sm">
+                                <p className="font-medium mb-1 text-blue-700 dark:text-blue-300">Authentication Started</p>
+                                <p className="mb-2">If the popup didn't open, click here:</p>
+                                <a
+                                    href={authUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="break-all text-blue-600 dark:text-blue-400 underline hover:text-blue-800 dark:hover:text-blue-200 block mb-2"
+                                >
+                                    Open Login Page
+                                </a>
+                            </div>
+
+                            {/* Manual Input Fallback */}
+                            {provider === "openai-codex" && (
+                                <div className="p-4 border rounded-md bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200 dark:border-yellow-800">
+                                    <p className="text-sm font-semibold text-yellow-800 dark:text-yellow-200 mb-2">
+                                        Remote Server / Docker Issue?
+                                    </p>
+                                    <p className="text-xs text-yellow-700 dark:text-yellow-300 mb-2">
+                                        If "Refused to connect" appears, copy the full URL from your browser's address bar (starting with <code>http://localhost:1455/...</code>) and paste it below:
+                                    </p>
+                                    <div className="flex gap-2">
+                                        <Input
+                                            placeholder="Paste http://localhost:1455/auth/callback?code=..."
+                                            className="flex-1 text-xs"
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    const val = (e.target as HTMLInputElement).value;
+                                                    if (val) submitManualCode(val);
+                                                }
+                                            }}
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="secondary"
+                                            onClick={(e) => {
+                                                const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                                                submitManualCode(input.value);
+                                            }}
+                                        >
+                                            Submit
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
                     {error && <div className="text-sm text-red-500">{error}</div>}

@@ -12,6 +12,8 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3402
+      # If running remotely, set your server IP here:
+      # - SMART_ROUTER_REDIRECT_URI=http://YOUR_SERVER_IP:1455/auth/callback
       # Add your API keys here or in a .env file
       # - OPENAI_API_KEY=sk-...
       # - GEMINI_API_KEY=...
