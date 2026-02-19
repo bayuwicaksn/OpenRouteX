@@ -1522,6 +1522,7 @@ function createServerLoginContext(res?: ServerResponse): LoginContext {
   return {
     async openUrl(url: string) {
       if (res) {
+        logger.info(`[Auth] Opening URL: ${url}`);
         res.write(`data: ${JSON.stringify({ action: "open_url", url })}\n\n`);
         return;
       }
