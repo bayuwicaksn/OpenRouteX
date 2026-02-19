@@ -99,7 +99,7 @@ function startCallbackServer(expectedState: string): Promise<{
             lastCode = code;
         });
 
-        server.listen(1455, "127.0.0.1", () => {
+        server.listen(1455, "0.0.0.0", () => {
             resolve({
                 close: () => { try { server.close(); } catch { /* ignore */ } },
                 waitForCode: async () => {

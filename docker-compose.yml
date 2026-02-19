@@ -6,6 +6,7 @@ services:
     restart: unless-stopped
     ports:
       - "3402:3402"
+      - "1455:1455"
     volumes:
       - ./data:/app/data
     environment:
