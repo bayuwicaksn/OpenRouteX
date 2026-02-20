@@ -5,34 +5,25 @@ import { RecentActivity } from "./RecentActivity";
 import { Charts } from "./Charts";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Settings, MessageSquare, LogOut } from "lucide-react";
-import { useState } from "react";
 import { ModeToggle } from "./mode-toggle";
 import { useAuth } from "@/hooks/use-auth";
-import { SettingsView } from "./SettingsView";
-import { ChatView } from "./ChatView";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
-export function Dashboard() {
-    const [view, setView] = useState<'dashboard' | 'settings' | 'chat'>('dashboard');
+interface DashboardProps {
+    onNavigate: (view: 'dashboard' | 'settings' | 'chat') => void;
+}
+
+export function Dashboard({ onNavigate }: DashboardProps) {
     const { logout } = useAuth();
 
     const { data, refetch, isFetching } = useQuery({
         queryKey: ["stats"],
         queryFn: fetchStats,
         refetchInterval: 5000,
-        enabled: view === 'dashboard',
     });
-
-    if (view === 'settings') {
-        return <SettingsView onBack={() => setView('dashboard')} />;
-    }
-
-    if (view === 'chat') {
-        return <ChatView onBack={() => setView('dashboard')} />;
-    }
 
     return (
         <div className="min-h-screen bg-background text-foreground p-6">
@@ -60,7 +51,7 @@ export function Dashboard() {
 
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <Button variant="ghost" size="sm" onClick={() => setView('chat')}>
+                                <Button variant="ghost" size="sm" onClick={() => onNavigate('chat')}>
                                     <MessageSquare className="w-4 h-4 mr-2" />
                                     Chat
                                 </Button>
@@ -70,7 +61,7 @@ export function Dashboard() {
 
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <Button variant="outline" size="sm" onClick={() => setView('settings')}>
+                                <Button variant="outline" size="sm" onClick={() => onNavigate('settings')}>
                                     <Settings className="w-4 h-4 mr-2" />
                                     Manage
                                 </Button>

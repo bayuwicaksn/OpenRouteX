@@ -6,11 +6,17 @@ import Login from "./pages/Login";
 import { Loader2 } from "lucide-react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { SettingsView } from "./components/SettingsView";
+import { ChatView } from "./components/ChatView";
+import { useState } from "react";
 
 const queryClient = new QueryClient();
 
+type AppView = 'dashboard' | 'settings' | 'chat';
+
 function MainContent() {
   const { isAuthenticated, isLoading } = useAuth();
+  const [view, setView] = useState<AppView>('dashboard');
 
   if (isLoading) {
     return (
@@ -24,7 +30,15 @@ function MainContent() {
     return <Login />;
   }
 
-  return <Dashboard />;
+  if (view === 'settings') {
+    return <SettingsView onBack={() => setView('dashboard')} />;
+  }
+
+  if (view === 'chat') {
+    return <ChatView onBack={() => setView('dashboard')} />;
+  }
+
+  return <Dashboard onNavigate={setView} />;
 }
 
 function App() {
