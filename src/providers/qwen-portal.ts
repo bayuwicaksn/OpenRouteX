@@ -12,7 +12,7 @@ import type {
 const BASE_URL = "https://chat.qwen.ai";
 const DEVICE_CODE_ENDPOINT = `${BASE_URL}/api/v1/oauth2/device/code`;
 const TOKEN_ENDPOINT = `${BASE_URL}/api/v1/oauth2/token`;
-const USER_INFO_ENDPOINT = `${BASE_URL}/api/v1/users/me`; // Guessing endpoint
+
 const CLIENT_ID = "f0304373b74a44d2b584a3fb70ca9e56";
 const SCOPE = "openid profile email model.completion";
 const GRANT_TYPE = "urn:ietf:params:oauth:grant-type:device_code";
@@ -99,10 +99,17 @@ async function pollForToken(
         refresh_token?: string;
         expires_in?: number;
         resource_url?: string;
+        id_token?: string;  // OpenID Connect if scope includes 'openid'
     };
 
     if (!data.access_token || !data.refresh_token || !data.expires_in) {
         throw new Error("Incomplete token response");
+    }
+
+    // Log full token response keys for debugging
+    if (process.env.DEBUG_RAW) {
+        console.log("[Qwen] Token response keys:", Object.keys(data));
+        if (data.id_token) console.log("[Qwen] id_token present!");
     }
 
     let resUrl = data.resource_url;
@@ -115,27 +122,64 @@ async function pollForToken(
 
     let email: string | undefined;
 
-    // 1. Try to decode JWT
-    try {
-        const parts = data.access_token.split(".");
-        if (parts.length === 3) {
-            const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString());
-            if (payload.email) email = payload.email;
-        }
-    } catch { /* ignore */ }
-
-    // 2. If no email, try to fetch user info
-    if (!email) {
+    // 1. Try id_token (OpenID Connect — most reliable if present)
+    if (data.id_token) {
         try {
-            const userRes = await fetch(USER_INFO_ENDPOINT, {
-                headers: { Authorization: `Bearer ${data.access_token}` }
-            });
-            if (userRes.ok) {
-                const userData = await userRes.json() as { email?: string; data?: { email?: string } };
-                if (userData.email) email = userData.email;
-                else if (userData.data?.email) email = userData.data.email; // Common wrapper
+            const parts = data.id_token.split(".");
+            if (parts.length === 3) {
+                const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString());
+                if (process.env.DEBUG_RAW) console.log("[Qwen] id_token payload:", JSON.stringify(payload));
+                email = payload.email ?? payload.preferred_username ?? payload.name;
             }
         } catch { /* ignore */ }
+    }
+
+    // 2. Try access_token JWT decode
+    if (!email) {
+        try {
+            const parts = data.access_token.split(".");
+            if (parts.length === 3) {
+                const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString());
+                if (process.env.DEBUG_RAW) console.log("[Qwen] access_token payload:", JSON.stringify(payload));
+                email = payload.email ?? payload.preferred_username ?? payload.sub;
+            }
+        } catch { /* ignore */ }
+    }
+
+    // 3. Try user info endpoints (multiple possible paths)
+    if (!email) {
+        const USER_INFO_URLS = [
+            `${BASE_URL}/api/v1/users/profile`,
+            `${BASE_URL}/api/v1/users/me`,
+            `${BASE_URL}/api/v1/userinfo`,
+        ];
+        for (const url of USER_INFO_URLS) {
+            try {
+                const userRes = await fetch(url, {
+                    headers: {
+                        Authorization: `Bearer ${data.access_token}`,
+                        Accept: "application/json",
+                    }
+                });
+                if (process.env.DEBUG_RAW) {
+                    console.log(`[Qwen] ${url} => ${userRes.status}`);
+                }
+                if (userRes.ok) {
+                    const raw = await userRes.text();
+                    if (process.env.DEBUG_RAW) console.log(`[Qwen] userinfo body:`, raw.slice(0, 500));
+                    try {
+                        const userData = JSON.parse(raw) as Record<string, any>;
+                        email = userData.email ?? userData.data?.email ?? userData.name ??
+                            userData.data?.name ?? userData.nickname ?? userData.data?.nickname;
+                        if (email) break;
+                    } catch { /* not json */ }
+                }
+            } catch { /* ignore network errors */ }
+        }
+    }
+
+    if (process.env.DEBUG_RAW) {
+        console.log("[Qwen] Resolved email/label:", email ?? "(none)");
     }
 
     return {
