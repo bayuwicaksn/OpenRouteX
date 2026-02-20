@@ -146,7 +146,7 @@ async function pollForToken(
         } catch { /* ignore */ }
     }
 
-    // 3. Try user info endpoints (multiple possible paths)
+    // 3. Try user info endpoints (with tight 3s timeout each)
     if (!email) {
         const USER_INFO_URLS = [
             `${BASE_URL}/api/v1/users/profile`,
@@ -155,12 +155,16 @@ async function pollForToken(
         ];
         for (const url of USER_INFO_URLS) {
             try {
+                const ac = new AbortController();
+                const timer = setTimeout(() => ac.abort(), 3000);
                 const userRes = await fetch(url, {
                     headers: {
                         Authorization: `Bearer ${data.access_token}`,
                         Accept: "application/json",
-                    }
+                    },
+                    signal: ac.signal,
                 });
+                clearTimeout(timer);
                 if (process.env.DEBUG_RAW) {
                     console.log(`[Qwen] ${url} => ${userRes.status}`);
                 }
@@ -174,7 +178,7 @@ async function pollForToken(
                         if (email) break;
                     } catch { /* not json */ }
                 }
-            } catch { /* ignore network errors */ }
+            } catch { /* ignore network/timeout errors */ }
         }
     }
 

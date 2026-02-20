@@ -110,12 +110,12 @@ export function AddAccountForm({ onSuccess }: AddAccountFormProps) {
                         <script>
                             setTimeout(() => {
                                 const msg = document.getElementById('msg');
-                                if (msg) msg.innerHTML = '<h3>Still waiting...</h3><p>Server is taking longer than expected.</p>';
-                            }, 5000);
+                                if (msg) msg.innerHTML = '<h3>Still waiting...</h3><p>Waiting for authentication approval...</p>';
+                            }, 10000);
                             setTimeout(() => {
                                 const msg = document.getElementById('msg');
-                                if (msg) msg.innerHTML = '<h3 style="color:red">Error</h3><p>Timeout waiting for server URL.</p>';
-                            }, 15000);
+                                if (msg) msg.innerHTML = '<h3 style="color:red">Error</h3><p>Timeout waiting for server response. Please try again.</p>';
+                            }, 60000);
                         </script>
                     </body>
                 </html>
