@@ -109,7 +109,6 @@ async function pollForToken(
     // Log full token response keys for debugging
     if (process.env.DEBUG_RAW) {
         console.log("[Qwen] Token response keys:", Object.keys(data));
-        if (data.id_token) console.log("[Qwen] id_token present!");
     }
 
     let resUrl = data.resource_url;
@@ -122,7 +121,7 @@ async function pollForToken(
 
     let email: string | undefined;
 
-    // 1. Try id_token (OpenID Connect — most reliable if present)
+    // 1. Try id_token (OpenID Connect — if Qwen ever adds support)
     if (data.id_token) {
         try {
             const parts = data.id_token.split(".");
@@ -134,7 +133,7 @@ async function pollForToken(
         } catch { /* ignore */ }
     }
 
-    // 2. Try access_token JWT decode
+    // 2. Try access_token JWT decode (Qwen uses opaque tokens currently, but check anyway)
     if (!email) {
         try {
             const parts = data.access_token.split(".");
@@ -146,44 +145,11 @@ async function pollForToken(
         } catch { /* ignore */ }
     }
 
-    // 3. Try user info endpoints (with tight 3s timeout each)
+    // 3. Fallback: use token fingerprint as a short identifier
+    //    (Qwen doesn't expose user info via API — all endpoints return 401)
     if (!email) {
-        const USER_INFO_URLS = [
-            `${BASE_URL}/api/v1/users/profile`,
-            `${BASE_URL}/api/v1/users/me`,
-            `${BASE_URL}/api/v1/userinfo`,
-        ];
-        for (const url of USER_INFO_URLS) {
-            try {
-                const ac = new AbortController();
-                const timer = setTimeout(() => ac.abort(), 3000);
-                const userRes = await fetch(url, {
-                    headers: {
-                        Authorization: `Bearer ${data.access_token}`,
-                        Accept: "application/json",
-                    },
-                    signal: ac.signal,
-                });
-                clearTimeout(timer);
-                if (process.env.DEBUG_RAW) {
-                    console.log(`[Qwen] ${url} => ${userRes.status}`);
-                }
-                if (userRes.ok) {
-                    const raw = await userRes.text();
-                    if (process.env.DEBUG_RAW) console.log(`[Qwen] userinfo body:`, raw.slice(0, 500));
-                    try {
-                        const userData = JSON.parse(raw) as Record<string, any>;
-                        email = userData.email ?? userData.data?.email ?? userData.name ??
-                            userData.data?.name ?? userData.nickname ?? userData.data?.nickname;
-                        if (email) break;
-                    } catch { /* not json */ }
-                }
-            } catch { /* ignore network/timeout errors */ }
-        }
-    }
-
-    if (process.env.DEBUG_RAW) {
-        console.log("[Qwen] Resolved email/label:", email ?? "(none)");
+        email = data.access_token.substring(0, 8);
+        if (process.env.DEBUG_RAW) console.log("[Qwen] Using token fingerprint as label:", email);
     }
 
     return {
