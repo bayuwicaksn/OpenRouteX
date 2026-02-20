@@ -1,10 +1,9 @@
 import Database, { Database as DatabaseType } from "better-sqlite3";
-import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import { mkdirSync, existsSync } from "node:fs";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const DATA_DIR = join(__dirname, "..", "..", "data");
+// Use process.cwd() instead of __dirname because tsup bundles to flat dist/
+const DATA_DIR = join(process.cwd(), "data");
 const DB_PATH = join(DATA_DIR, "smart-router.db");
 
 // Ensure data directory exists

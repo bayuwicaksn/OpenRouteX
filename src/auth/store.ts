@@ -1,6 +1,5 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import type {
     AuthProfileStore,
     ProfileCredential,
@@ -12,8 +11,10 @@ import { getProvider } from "../providers/index.js";
 
 // ── Store path ──────────────────────────────────────────────────────
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const DEFAULT_STORE_PATH = join(__dirname, "..", "..", "data", "auth-store.json");
+// Use process.cwd() instead of __dirname because tsup bundles
+// everything into a flat dist/ directory, making __dirname-relative
+// paths incorrect (e.g. /app/dist/../.. = / instead of /app)
+const DEFAULT_STORE_PATH = join(process.cwd(), "data", "auth-store.json");
 
 function getStorePath(): string {
     const p = process.env.SMART_ROUTER_AUTH_STORE ?? DEFAULT_STORE_PATH;
