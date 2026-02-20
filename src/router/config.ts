@@ -104,6 +104,8 @@ const DEFAULT_TIER_MODELS: Record<Tier, ModelRoute[]> = {
         { model: "gemini-3-flash", provider: "antigravity" },
         { model: "gemini-3-flash-preview", provider: "antigravity" },
         { model: "MiniMax-M2.5", provider: "minimax-portal" },
+        { model: "coder-model", provider: "qwen-portal" },
+        { model: "gpt-5.2-codex", provider: "openai-codex" },
         { model: "gemini-2.0-flash", provider: "google" },
         { model: "gpt-4.1-mini", provider: "openai" },
         { model: "deepseek-chat", provider: "deepseek" },
@@ -113,6 +115,7 @@ const DEFAULT_TIER_MODELS: Record<Tier, ModelRoute[]> = {
         { model: "minimax-m2.1", provider: "nvidia" }, // Added
         { model: "kimi-k2.5", provider: "nvidia" },     // Added
         { model: "coder-model", provider: "qwen-portal" },
+        { model: "gpt-5.2-codex", provider: "openai-codex" },
         { model: "MiniMax-M2.5", provider: "minimax-portal" },
         { model: "gemini-2.5-flash", provider: "google" },
         { model: "gpt-4.1", provider: "openai" },
@@ -124,6 +127,7 @@ const DEFAULT_TIER_MODELS: Record<Tier, ModelRoute[]> = {
         { model: "gemini-3-pro", provider: "antigravity" },
         { model: "claude-opus-4-6", provider: "antigravity" },
         { model: "gpt-5.2-codex", provider: "openai-codex" },
+        { model: "coder-model", provider: "qwen-portal" },
         { model: "gemini-2.5-pro", provider: "google" },
         { model: "claude-opus-4-20250512", provider: "anthropic" },
     ],
@@ -132,6 +136,7 @@ const DEFAULT_TIER_MODELS: Record<Tier, ModelRoute[]> = {
         { model: "qwen-3.5-397b", provider: "nvidia" }, // Added
         { model: "gemini-3-pro", provider: "antigravity" },
         { model: "gpt-5.3-codex", provider: "openai-codex" },
+        { model: "coder-model", provider: "qwen-portal" },
         { model: "claude-opus-4-6", provider: "antigravity" },
         { model: "o3", provider: "openai" },
         { model: "gemini-2.5-pro", provider: "google" },
