@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -27,18 +27,27 @@ export function ChatView({ onBack }: ChatViewProps) {
         queryFn: fetchConfig,
     });
 
-    const models = config?.models || [];
-    const availableProviders = new Set(config?.providers.map(p => p.id) || []);
+    const models = useMemo(() => config?.models ?? [], [config]);
+    const availableProviders = useMemo(
+        () => new Set(config?.providers?.map(p => p.id) ?? []),
+        [config]
+    );
 
+    const availableModels = useMemo(
+        () => models.filter(m => availableProviders.has(m.provider) || m.provider === "router"),
+        [models, availableProviders]
+    );
+    const unavailableModels = useMemo(
+        () => models.filter(m => !availableProviders.has(m.provider) && m.provider !== "router"),
+        [models, availableProviders]
+    );
+
+    // Auto-select first available model on load
     useEffect(() => {
-        if (models.length > 0 && !selectedModel) {
-            const firstAvailable = models.find(m => availableProviders.has(m.provider));
-            setSelectedModel(firstAvailable ? firstAvailable.id : models[0].id);
+        if (availableModels.length > 0 && !selectedModel) {
+            setSelectedModel(availableModels[0].id);
         }
-    }, [models, selectedModel, config]);
-
-    const availableModels = models.filter(m => availableProviders.has(m.provider) || m.provider === "router");
-    const unavailableModels = models.filter(m => !availableProviders.has(m.provider));
+    }, [availableModels.length, selectedModel]);
 
     useEffect(() => {
         if (scrollRef.current) {
@@ -168,7 +177,7 @@ export function ChatView({ onBack }: ChatViewProps) {
                             No models available
                         </Button>
                     ) : (
-                        <Select value={selectedModel} onValueChange={setSelectedModel}>
+                        <Select value={selectedModel || undefined} onValueChange={setSelectedModel}>
                             <SelectTrigger className="w-[220px]">
                                 <SelectValue placeholder="Select a model" />
                             </SelectTrigger>
@@ -189,7 +198,7 @@ export function ChatView({ onBack }: ChatViewProps) {
                                         <SelectGroup>
                                             <SelectLabel>Unavailable (Provider Offline)</SelectLabel>
                                             {unavailableModels.map(m => (
-                                                <SelectItem key={m.id} value={m.id} disabled>
+                                                <SelectItem key={m.id} value={m.id}>
                                                     🔴 {m.name} ({m.provider})
                                                 </SelectItem>
                                             ))}

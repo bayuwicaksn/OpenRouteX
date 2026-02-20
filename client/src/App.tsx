@@ -8,6 +8,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SettingsView } from "./components/SettingsView";
 import { ChatView } from "./components/ChatView";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { useState } from "react";
 
 const queryClient = new QueryClient();
@@ -31,14 +32,26 @@ function MainContent() {
   }
 
   if (view === 'settings') {
-    return <SettingsView onBack={() => setView('dashboard')} />;
+    return (
+      <ErrorBoundary fallbackLabel="Settings crashed">
+        <SettingsView onBack={() => setView('dashboard')} />
+      </ErrorBoundary>
+    );
   }
 
   if (view === 'chat') {
-    return <ChatView onBack={() => setView('dashboard')} />;
+    return (
+      <ErrorBoundary fallbackLabel="Chat crashed">
+        <ChatView onBack={() => setView('dashboard')} />
+      </ErrorBoundary>
+    );
   }
 
-  return <Dashboard onNavigate={setView} />;
+  return (
+    <ErrorBoundary fallbackLabel="Dashboard crashed">
+      <Dashboard onNavigate={setView} />
+    </ErrorBoundary>
+  );
 }
 
 function App() {
