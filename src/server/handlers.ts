@@ -361,6 +361,13 @@ export async function handleChatCompletion(
 
     const finalModel = body.model || decision.selectedModel;
 
+    // Guard: if headers were already sent (streaming started), don't try to send error response
+    if (res.headersSent) {
+        logger.warn(`Headers already sent, cannot send error response for failed routing`);
+        if (!res.writableEnded) res.end();
+        return;
+    }
+
     if (useAntigravityStyle) {
         const agWaitSeconds = Math.ceil(antigravityMaxCooldown / 1000);
         res.writeHead(429, {
