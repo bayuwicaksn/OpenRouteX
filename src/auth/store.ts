@@ -288,8 +288,39 @@ export function markProfileFailure(
 ): void {
     const store = loadStore();
     const existing = store.usageStats[profileId] ?? {};
-    const errorCount = (existing.errorCount ?? 0) + 1;
 
+    // For model-specific failures, only apply model-level cooldown
+    // Do NOT increment global errorCount or set global cooldownUntil
+    const isModelSpecific = modelId && (reason === "rate_limit" || reason === "model_not_found");
+
+    const modelCooldowns = existing.modelCooldowns ?? {};
+
+    if (isModelSpecific) {
+        // Model-specific cooldown only — don't touch global state
+        let cooldownMs = explicitCooldownMs ?? 60_000; // Default 60s for model-specific
+        if (profileId.startsWith("antigravity") && !explicitCooldownMs && reason === "rate_limit") {
+            cooldownMs = 5 * 60 * 1000; // 5 min for Antigravity rate limits
+        }
+        modelCooldowns[modelId] = Date.now() + cooldownMs;
+
+        store.usageStats[profileId] = {
+            ...existing,
+            // Keep state and errorCount UNCHANGED — this is model-specific, not profile-wide
+            state: existing.state === "DISABLED" ? "DISABLED" : (existing.state ?? "ACTIVE"),
+            modelCooldowns,
+            lastFailureAt: Date.now(),
+            failureReason: reason,
+        } as ProfileUsageStats;
+        saveStore(store);
+
+        logger.warn(
+            `Profile ${profileId} (model ${modelId}) failed (${reason}), cooldown ${Math.round(cooldownMs / 1000)}s`,
+        );
+        return;
+    }
+
+    // Global failure — increment errorCount and apply profile-level cooldown
+    const errorCount = (existing.errorCount ?? 0) + 1;
     let cooldownMs = explicitCooldownMs ?? calculateCooldownMs(errorCount);
 
     if (profileId.startsWith("antigravity") && !explicitCooldownMs && reason === "rate_limit") {
@@ -303,26 +334,18 @@ export function markProfileFailure(
         newState = "DISABLED";
     }
 
-    const modelCooldowns = existing.modelCooldowns ?? {};
-    if ((reason === "rate_limit" || reason === "model_not_found") && modelId) {
-        newState = existing.state === "DISABLED" ? "DISABLED" : "ACTIVE";
-        modelCooldowns[modelId] = cooldownUntil;
-    } else if (newState === "COOLDOWN") {
-        // Global cooldown
-    }
-
     store.usageStats[profileId] = {
         ...existing,
         state: newState,
         errorCount,
-        cooldownUntil: (newState === "COOLDOWN" && (!modelId || (reason !== "rate_limit" && reason !== "model_not_found"))) ? cooldownUntil : existing.cooldownUntil,
+        cooldownUntil,
         modelCooldowns,
         lastFailureAt: Date.now(),
         failureReason: reason,
     } as ProfileUsageStats;
     saveStore(store);
 
-    const target = modelId ? `model ${modelId}` : "profile";
+    const target = "profile";
     logger.warn(
         `Profile ${profileId} (${target}) failed (${reason}), cooldown ${Math.round(cooldownMs / 1000)}s`,
     );

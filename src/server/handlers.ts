@@ -282,11 +282,10 @@ export async function handleChatCompletion(
             return;
         } catch (err: any) {
             const reason = err?.reason ?? "unknown";
-            const failureModelId =
-                reason === "rate_limit" || reason === "model_not_found"
-                    ? model
-                    : undefined;
-            markProfileFailure(profileId, reason, err.cooldownMs, failureModelId);
+            // NOTE: Do NOT call markProfileFailure here.
+            // It is already called inside proxyToProvider (proxy-upstream.ts)
+            // before throwing. Calling it again would double the errorCount
+            // and escalate cooldowns twice as fast.
 
             if (
                 err.upstreamError &&
