@@ -163,36 +163,42 @@ export function ChatView({ onBack }: ChatViewProps) {
                         </Label>
                     </div>
                     <Separator orientation="vertical" className="h-6" />
-                    <Select value={selectedModel} onValueChange={setSelectedModel}>
-                        <SelectTrigger className="w-[220px]">
-                            <SelectValue placeholder="Select a model" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {availableModels.length > 0 && (
-                                <SelectGroup>
-                                    <SelectLabel>Available Models</SelectLabel>
-                                    {availableModels.map(m => (
-                                        <SelectItem key={m.id} value={m.id}>
-                                            🟢 {m.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectGroup>
-                            )}
-                            {unavailableModels.length > 0 && (
-                                <>
-                                    <SelectSeparator />
+                    {models.length === 0 ? (
+                        <Button variant="outline" className="w-[220px] justify-start text-muted-foreground" disabled>
+                            No models available
+                        </Button>
+                    ) : (
+                        <Select value={selectedModel} onValueChange={setSelectedModel}>
+                            <SelectTrigger className="w-[220px]">
+                                <SelectValue placeholder="Select a model" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {availableModels.length > 0 && (
                                     <SelectGroup>
-                                        <SelectLabel>Unavailable (Provider Offline)</SelectLabel>
-                                        {unavailableModels.map(m => (
-                                            <SelectItem key={m.id} value={m.id} disabled>
-                                                🔴 {m.name} ({m.provider})
+                                        <SelectLabel>Available Models</SelectLabel>
+                                        {availableModels.map(m => (
+                                            <SelectItem key={m.id} value={m.id}>
+                                                🟢 {m.name}
                                             </SelectItem>
                                         ))}
                                     </SelectGroup>
-                                </>
-                            )}
-                        </SelectContent>
-                    </Select>
+                                )}
+                                {unavailableModels.length > 0 && (
+                                    <>
+                                        <SelectSeparator />
+                                        <SelectGroup>
+                                            <SelectLabel>Unavailable (Provider Offline)</SelectLabel>
+                                            {unavailableModels.map(m => (
+                                                <SelectItem key={m.id} value={m.id} disabled>
+                                                    🔴 {m.name} ({m.provider})
+                                                </SelectItem>
+                                            ))}
+                                        </SelectGroup>
+                                    </>
+                                )}
+                            </SelectContent>
+                        </Select>
+                    )}
                 </div>
             </div>
 
